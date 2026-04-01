@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, signOut } from "aws-amplify/auth";
 import { configureAmplifyAuth } from "@/lib/amplify";
 import {
   DEFAULT_ANON_GENDER,
@@ -141,11 +141,18 @@ export default function Home() {
   return (
     <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">
       <HomeNavbar
-        isLoggedIn={isLoggedIn}
         menuOpen={menuOpen}
         onToggleMenu={() => setMenuOpen((value) => !value)}
       />
-      {!isLoggedIn ? <MobileDrawer open={menuOpen} onClose={() => setMenuOpen(false)} /> : null}
+      <MobileDrawer
+        isLoggedIn={isLoggedIn}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onLogout={async () => {
+          await signOut();
+          setIsLoggedIn(false);
+        }}
+      />
 
       <div className="mx-auto w-full max-w-7xl px-6 py-6">
         <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">

@@ -95,7 +95,7 @@ function CardShell({
           </button>
         </div>
       </nav>
-      <MobileDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <MobileDrawer isLoggedIn={false} open={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <div className="mx-auto grid w-full max-w-7xl items-start gap-6 px-6 py-6 lg:min-h-[calc(100vh-73px)] lg:grid-cols-[240px_minmax(0,1fr)_240px]">
         <aside className="hidden lg:block">

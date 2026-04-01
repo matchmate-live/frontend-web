@@ -1,13 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import AboutIcon from "@/icons/about.svg";
+import ContactIcon from "@/icons/contact.svg";
+import HomeIcon from "@/icons/home.svg";
+import MessagesIcon from "@/icons/messages.svg";
 
 type MobileDrawerProps = {
   open: boolean;
+  isLoggedIn: boolean;
+  onLogout?: () => Promise<void> | void;
   onClose: () => void;
 };
 
-export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
+export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: MobileDrawerProps) {
   return (
     <div
       className={`fixed inset-0 z-50 transition-opacity duration-300 ${
@@ -26,6 +32,7 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
+        <div className="flex h-full flex-col">
         <div className="mb-4 relative">
           <p className="text-left text-xl font-semibold text-pink-300">MatchMate.live</p>
           <button
@@ -45,17 +52,67 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             </svg>
           </button>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="mx-[-1rem]">
           <Link
-            className="rounded-md border border-pink-200 bg-white px-3 py-2 text-center text-sm text-zinc-900"
-            href="/auth/sign-up"
+            className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
+            href="/"
             onClick={onClose}
           >
-            Sign up
+            <HomeIcon className="h-4 w-4 text-pink-300" />
+            Home
           </Link>
-          <Link className="rounded-md bg-pink-300 px-3 py-2 text-center text-sm text-white" href="/auth/sign-in" onClick={onClose}>
-            Sign in
+          <Link
+            className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
+            href="/messages"
+            onClick={onClose}
+          >
+            <MessagesIcon className="h-4 w-4 text-pink-300" />
+            Messages
           </Link>
+          <Link
+            className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
+            href="/contact"
+            onClick={onClose}
+          >
+            <ContactIcon className="h-4 w-4 text-pink-300" />
+            Contact us
+          </Link>
+          <Link
+            className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
+            href="/about"
+            onClick={onClose}
+          >
+            <AboutIcon className="h-4 w-4 text-pink-300" />
+            About
+          </Link>
+        </div>
+        <div className="mt-auto flex flex-col gap-2">
+          {isLoggedIn ? (
+            <button
+              className="cursor-pointer rounded-md bg-pink-300 px-3 py-2 text-center text-sm text-white"
+              type="button"
+              onClick={async () => {
+                await onLogout?.();
+                onClose();
+              }}
+            >
+              Logout
+            </button>
+          ) : (
+            <>
+              <Link
+                className="rounded-md border border-pink-200 bg-white px-3 py-2 text-center text-sm text-zinc-900"
+                href="/auth/sign-up"
+                onClick={onClose}
+              >
+                Sign up
+              </Link>
+              <Link className="rounded-md bg-pink-300 px-3 py-2 text-center text-sm text-white" href="/auth/sign-in" onClick={onClose}>
+                Sign in
+              </Link>
+            </>
+          )}
+        </div>
         </div>
       </aside>
     </div>
