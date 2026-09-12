@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSubFromBearerAuth } from "@/lib/api/jwtSub";
 import { serverEnv } from "@/lib/api/serverEnv";
+import { forwardJsonResponse } from "@/lib/api/proxy";
 
 export const runtime = "nodejs";
 
@@ -45,13 +46,7 @@ export async function GET(
         cache: "no-store",
       },
     );
-    const payload = await response.json().catch(() => ({}));
-    const out = NextResponse.json(payload, { status: response.status });
-    const cacheControl = response.headers.get("cache-control");
-    if (cacheControl) {
-      out.headers.set("Cache-Control", cacheControl);
-    }
-    return out;
+    return await forwardJsonResponse(response);
   } catch {
     return NextResponse.json({ message: "Unable to reach profile service." }, { status: 502 });
   }

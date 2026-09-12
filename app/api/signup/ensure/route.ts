@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverEnv } from "@/lib/api/serverEnv";
+import { forwardJsonResponse } from "@/lib/api/proxy";
 
 export const runtime = "nodejs";
 
@@ -25,8 +26,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({}),
       cache: "no-store",
     });
-    const payload = await response.json().catch(() => ({}));
-    return NextResponse.json(payload, { status: response.status });
+    return await forwardJsonResponse(response);
   } catch {
     return NextResponse.json({ message: "Unable to reach signup service." }, { status: 502 });
   }

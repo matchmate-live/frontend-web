@@ -1,3 +1,5 @@
+import { throwApiError } from "@/lib/api/clientError";
+
 export type SearchProfile = {
   userId: string;
   name?: string;
@@ -88,13 +90,10 @@ export async function fetchProfilesByLocation(filters: FilterState) {
     },
   });
 
-  const payload = (await response.json()) as SearchResponse | { message?: string };
   if (!response.ok) {
-    throw new Error(
-      "message" in payload && payload.message ? payload.message : "Search request failed",
-    );
+    await throwApiError(response, "Search request failed");
   }
-  const out = payload as SearchResponse;
+  const out = (await response.json()) as SearchResponse;
   if (auth.isAuthenticated && out.lastSeenUpdated) {
     setStoredLastSeen(
       typeof out.lastSeenAt === "number" && Number.isFinite(out.lastSeenAt) ? out.lastSeenAt : Date.now(),

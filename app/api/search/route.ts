@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-
-function env(name: string): string {
-  const value = process.env[name];
-  return typeof value === "string" ? value.trim() : "";
-}
+import { serverEnv } from "@/lib/api/serverEnv";
+import { forwardJsonResponse } from "@/lib/api/proxy";
 
 export async function GET(request: NextRequest) {
-  const apiBaseUrl = env("API_BASE_URL");
+  const apiBaseUrl = serverEnv("API_BASE_URL");
   if (!apiBaseUrl) {
     return NextResponse.json(
       { message: "Server is missing API_BASE_URL." },
@@ -32,15 +29,7 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
 
-    const payload = await response.json();
-    const out = NextResponse.json(payload, {
-      status: response.status,
-    });
-    const cacheControl = response.headers.get("cache-control");
-    if (cacheControl) {
-      out.headers.set("Cache-Control", cacheControl);
-    }
-    return out;
+    return await forwardJsonResponse(response);
   } catch {
     return NextResponse.json(
       { message: "Unable to reach upstream search service." },

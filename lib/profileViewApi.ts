@@ -1,5 +1,6 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 import type { ProfileResponse } from "@/lib/onboarding/types";
+import { throwApiError } from "@/lib/api/clientError";
 
 const PROFILE_VIEW_STRIP_KEYS = [
   "phone",
@@ -39,10 +40,9 @@ export async function fetchProfileByUserId(
     headers,
     signal: options?.signal,
   });
-  const data = (await res.json().catch(() => ({}))) as ProfileResponse & { message?: string };
   if (!res.ok) {
-    const msg = typeof data.message === "string" ? data.message : `Request failed (${res.status})`;
-    throw new Error(msg);
+    await throwApiError(res);
   }
-  return stripProfileViewFields(data as ProfileResponse);
+  const data = (await res.json()) as ProfileResponse;
+  return stripProfileViewFields(data);
 }
