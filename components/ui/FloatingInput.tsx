@@ -7,6 +7,9 @@ type FloatingInputProps = {
   onChange: (value: string) => void;
   onBlur?: () => void;
   required?: boolean;
+  /** For `type="date"`, ISO YYYY-MM-DD bounds (browser-native constraint). */
+  min?: string;
+  max?: string;
   startAdornment?: React.ReactNode;
   endAdornment?: React.ReactNode;
   error?: string;
@@ -19,6 +22,8 @@ export default function FloatingInput({
   onChange,
   onBlur,
   required = false,
+  min,
+  max,
   startAdornment,
   endAdornment,
   error,
@@ -38,6 +43,8 @@ export default function FloatingInput({
           placeholder=" "
           required={required}
           type={type}
+          min={min}
+          max={max}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}

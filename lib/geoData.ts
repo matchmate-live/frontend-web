@@ -18,6 +18,7 @@ export function getCountryOptions(): CountryOption[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
+/** Lowercase city names for `countryValue` (country name lowercased). Same data home filters and onboarding use. */
 export function getCityOptionsByCountry(countryValue: string): string[] {
   if (!countryValue) return [];
   const country = Country.getAllCountries().find(

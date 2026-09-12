@@ -19,4 +19,7 @@ export const ADS_SLOTS = {
   contactDesktopLeft: process.env.NEXT_PUBLIC_ADSENSE_SLOT_CONTACT_DESKTOP_LEFT ?? "9999999985",
   contactDesktopRight: process.env.NEXT_PUBLIC_ADSENSE_SLOT_CONTACT_DESKTOP_RIGHT ?? "9999999986",
   contactMobileInline: process.env.NEXT_PUBLIC_ADSENSE_SLOT_CONTACT_MOBILE_INLINE ?? "9999999987",
+  /** Profile page: two units — A = left rail + mobile top; B = right rail + mobile bottom. */
+  profileA: process.env.NEXT_PUBLIC_ADSENSE_SLOT_PROFILE_A ?? "9999999971",
+  profileB: process.env.NEXT_PUBLIC_ADSENSE_SLOT_PROFILE_B ?? "9999999972",
 } as const;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   confirmSignUp,
+  resendSignUpCode,
   signIn,
   signInWithRedirect,
   signUp,
@@ -24,16 +25,37 @@ import {
   validatePassword,
   validatePhoneNumber,
 } from "@/lib/authValidation";
+import {
+  fetchMyProfile,
+  getPostAuthRedirectPath,
+  isSafeRelativeAppPath,
+  postSignupBootstrap,
+  withOnboardingQuery,
+} from "@/lib/onboarding";
 
 type Mode = "signIn" | "signUp" | "confirm";
 
 type Props = {
   mode: Mode;
   initialEmail?: string;
+  /** Safe in-app path after sign-in (e.g. `/onboarding/profile`). */
+  nextHref?: string;
 };
 
 const PASSWORD_REQUIREMENTS_TEXT =
   "Password must be at least 12 characters and include uppercase, lowercase, number, and symbol.";
+
+function isUserNotConfirmedError(err: unknown): boolean {
+  if (err && typeof err === "object" && "name" in err) {
+    const name = String((err as { name?: string }).name);
+    if (name === "UserNotConfirmedException") return true;
+  }
+  if (err instanceof Error) {
+    const m = err.message.toLowerCase();
+    return m.includes("user is not confirmed") || m.includes("not confirmed");
+  }
+  return false;
+}
 
 function CardShell({
   mode,
@@ -158,7 +180,7 @@ function ErrorText({ text }: { text: string }) {
   return <p className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-700">{text}</p>;
 }
 
-export default function AuthCard({ mode, initialEmail = "" }: Props) {
+export default function AuthCard({ mode, initialEmail = "", nextHref }: Props) {
   const isConfigured = configureAmplifyAuth();
   const router = useRouter();
   const [error, setError] = useState("");
@@ -170,6 +192,8 @@ export default function AuthCard({ mode, initialEmail = "" }: Props) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [code, setCode] = useState("");
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendHint, setResendHint] = useState("");
 
   async function handleGoogle() {
     if (!isConfigured) {
@@ -205,11 +229,33 @@ export default function AuthCard({ mode, initialEmail = "" }: Props) {
     try {
       const result = await signIn({ username: email, password });
       if (result.nextStep.signInStep === "DONE") {
-        router.push("/");
+        try {
+          const profile = await fetchMyProfile();
+          const dest = getPostAuthRedirectPath(profile);
+          if (dest !== "/") {
+            router.push(withOnboardingQuery(dest));
+            return;
+          }
+          if (nextHref && isSafeRelativeAppPath(nextHref)) {
+            router.push(nextHref);
+            return;
+          }
+          router.push("/");
+        } catch {
+          router.push("/");
+        }
+        return;
+      }
+      if (result.nextStep.signInStep === "CONFIRM_SIGN_UP") {
+        router.push(`/auth/confirm?email=${encodeURIComponent(email.trim())}`);
         return;
       }
       setError(`Next step: ${result.nextStep.signInStep}`);
     } catch (err) {
+      if (isUserNotConfirmedError(err)) {
+        router.push(`/auth/confirm?email=${encodeURIComponent(email.trim())}`);
+        return;
+      }
       setError(err instanceof Error ? err.message : "Sign-in failed");
     } finally {
       setBusy(false);
@@ -237,13 +283,26 @@ export default function AuthCard({ mode, initialEmail = "" }: Props) {
     setError("");
     setBusy(true);
     try {
-      await signUp({
+      const result = await signUp({
         username: email,
         password,
         options: {
           userAttributes: { email, phone_number: normalizedPhone },
         },
       });
+      const userSub = result.userId;
+      if (userSub) {
+        const boot = await postSignupBootstrap({
+          userSub,
+          email,
+          phone: normalizedPhone,
+        });
+        if (!boot.ok) {
+          setError(boot.message);
+          setBusy(false);
+          return;
+        }
+      }
       router.push(`/auth/confirm?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-up failed");
@@ -273,11 +332,36 @@ export default function AuthCard({ mode, initialEmail = "" }: Props) {
         username: email,
         confirmationCode: code,
       });
-      router.push("/auth/sign-in");
+      router.push(
+        `/auth/sign-in?next=${encodeURIComponent("/onboarding/profile")}`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Confirmation failed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleResendCode() {
+    if (!isConfigured) {
+      setError("Missing Cognito env values. Configure .env.local first.");
+      return;
+    }
+    const emailErr = validateEmail(email);
+    if (emailErr) {
+      setFieldErrors((prev) => ({ ...prev, email: emailErr }));
+      return;
+    }
+    setResendHint("");
+    setError("");
+    setResendBusy(true);
+    try {
+      await resendSignUpCode({ username: email.trim() });
+      setResendHint("A new verification code was sent to your email.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend the code.");
+    } finally {
+      setResendBusy(false);
     }
   }
 
@@ -335,6 +419,12 @@ export default function AuthCard({ mode, initialEmail = "" }: Props) {
           No account?{" "}
           <Link className="text-pink-300 underline" href="/auth/sign-up">
             Sign up
+          </Link>
+        </p>
+        <p className="mt-2 text-sm text-zinc-600">
+          Need to verify your email or resend the code?{" "}
+          <Link className="text-pink-300 underline" href="/auth/confirm">
+            Verify email
           </Link>
         </p>
       </CardShell>
@@ -435,7 +525,11 @@ export default function AuthCard({ mode, initialEmail = "" }: Props) {
   }
 
   return (
-    <CardShell mode={mode} title="Confirm account" subtitle="Enter the code sent to your email">
+    <CardShell
+      mode={mode}
+      title="Verify your email"
+      subtitle="Enter the verification code we sent to your email. Verification is required before you can sign in."
+    >
       {error && <ErrorText text={error} />}
       <form className="space-y-3" onSubmit={handleConfirm}>
         <FloatingInput
@@ -469,6 +563,19 @@ export default function AuthCard({ mode, initialEmail = "" }: Props) {
           {busy ? "Confirming..." : "Confirm and continue"}
         </button>
       </form>
+      <button
+        className="mt-3 w-full cursor-pointer rounded-md border border-pink-200 bg-white p-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={resendBusy || busy}
+        type="button"
+        onClick={() => void handleResendCode()}
+      >
+        {resendBusy ? "Sending…" : "Resend verification code"}
+      </button>
+      {resendHint ? (
+        <p className="mt-2 text-sm text-zinc-600" role="status">
+          {resendHint}
+        </p>
+      ) : null}
       <p className="mt-4 text-sm text-zinc-600">
         Already confirmed?{" "}
         <Link className="text-pink-300 underline" href="/auth/sign-in">

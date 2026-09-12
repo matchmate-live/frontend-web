@@ -20,19 +20,27 @@ export async function GET(request: NextRequest) {
     upstreamUrl.searchParams.set(key, value);
   }
 
+  const auth = request.headers.get("authorization");
+
   try {
     const response = await fetch(upstreamUrl.toString(), {
       method: "GET",
       headers: {
         Accept: "application/json",
+        ...(auth ? { Authorization: auth } : {}),
       },
       cache: "no-store",
     });
 
     const payload = await response.json();
-    return NextResponse.json(payload, {
+    const out = NextResponse.json(payload, {
       status: response.status,
     });
+    const cacheControl = response.headers.get("cache-control");
+    if (cacheControl) {
+      out.headers.set("Cache-Control", cacheControl);
+    }
+    return out;
   } catch {
     return NextResponse.json(
       { message: "Unable to reach upstream search service." },

@@ -1,0 +1,36 @@
+export type OnboardingStatus = "signup_stub" | "needs_photos" | "complete" | string;
+
+export type ProfileResponse = {
+  userId?: string;
+  email?: string;
+  phone?: string;
+  onboardingStatus?: OnboardingStatus;
+  /** false = must see optional photos screen once; true = done (or legacy account). */
+  onboardingPhotosPromptCompleted?: boolean;
+  name?: string;
+  description?: string;
+  dob?: string;
+  country?: string;
+  city?: string;
+  gender?: string;
+  genderPreference?: string;
+  photos?: string[];
+  age?: number;
+  /** Epoch ms; present on search and profile views. */
+  lastSeen?: number;
+};
+
+export type OnboardingProfileFieldErrors = Partial<{
+  name: string;
+  dob: string;
+  country: string;
+  city: string;
+  gender: string;
+  genderPreference: string;
+}>;
+
+export type BootstrapSignupBody = {
+  userSub: string;
+  email: string;
+  phone: string;
+};

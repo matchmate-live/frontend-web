@@ -12,7 +12,7 @@ type ProfilesGridProps = {
 export default function ProfilesGrid({ profiles }: ProfilesGridProps) {
   return (
     <>
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="mt-6 grid w-full grid-cols-1 gap-4">
         {profiles.length === 0 ? (
           <EmptyProfilesState />
         ) : (

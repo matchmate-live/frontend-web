@@ -40,8 +40,12 @@ export default function AuthShell({ mode, title, subtitle, children }: AuthShell
 
   return (
     <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">
-      <HomeNavbar isLoggedIn={false} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen((value) => !value)} />
-      <MobileDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <HomeNavbar menuOpen={menuOpen} onToggleMenu={() => setMenuOpen((value) => !value)} />
+      <MobileDrawer
+        isLoggedIn={false}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+      />
 
       <div className="mx-auto grid w-full max-w-7xl items-start gap-6 px-6 py-6 lg:min-h-[calc(100vh-73px)] lg:grid-cols-[240px_minmax(0,1fr)_240px]">
         <aside className="hidden lg:block">
