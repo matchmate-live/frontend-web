@@ -104,11 +104,11 @@ function CardShell({
       </nav>
       <MobileDrawer isLoggedIn={false} open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <div className="mx-auto grid w-full max-w-7xl items-start gap-6 px-6 py-6 lg:min-h-[calc(100vh-73px)] lg:grid-cols-[240px_minmax(0,1fr)_240px]">
+      <div className="mx-auto grid w-full max-w-7xl items-stretch gap-6 px-6 py-6 lg:min-h-[calc(100vh-73px)] lg:grid-cols-[240px_minmax(0,1fr)_240px]">
         <aside className="hidden lg:block">
           <div className="h-[calc(100vh-2rem)] rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
             <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-            <AdSlot className="block h-[calc(100vh-8rem)] w-full rounded-md bg-pink-50/50" slot={leftSlot} />
+            <AdSlot className="mx-auto block rounded-md bg-pink-50/50" slot={leftSlot} size={{ width: 250, height: 600 }} />
           </div>
         </aside>
 
@@ -149,7 +149,7 @@ function CardShell({
         <aside className="hidden lg:block">
           <div className="h-[calc(100vh-2rem)] rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
             <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-            <AdSlot className="block h-[calc(100vh-8rem)] w-full rounded-md bg-pink-50/50" slot={rightSlot} />
+            <AdSlot className="mx-auto block rounded-md bg-pink-50/50" slot={rightSlot} size={{ width: 250, height: 600 }} />
           </div>
         </aside>
       </div>
