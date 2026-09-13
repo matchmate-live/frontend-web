@@ -55,7 +55,7 @@ export default function ContactContent() {
         </div>
       </section>
 
-      <div className="mt-8 sm:hidden">
+      <div className="mt-8 lg:hidden">
         <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
           <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
           <AdSlot
