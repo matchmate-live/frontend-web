@@ -229,7 +229,7 @@ export default function Home() {
       />
 
       <div className="mx-auto w-full max-w-7xl px-6 py-6">
-        <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
+        <div className="grid items-stretch gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
           <AdRail slot={ADS_SLOTS.desktopLeft} />
 
           <div>

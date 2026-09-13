@@ -27,10 +27,10 @@ export default function MessagesPage() {
       />
 
       <div className="mx-auto w-full max-w-7xl px-6 py-6">
-        <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
+        <div className="grid items-stretch gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
           <AdRail slot={ADS_SLOTS.desktopLeft} />
 
-          <section className="relative min-h-[calc(100dvh-7rem)] rounded-2xl border border-pink-200 bg-white p-6 shadow-sm lg:min-h-[calc(100vh-7rem)]">
+          <section className="relative min-h-[calc(100dvh-7rem)] rounded-2xl border border-pink-200 bg-white p-6 shadow-sm lg:min-h-[calc(100vh-7rem)] lg:h-full">
             <div className={!isLoggedIn ? "pointer-events-none select-none blur-sm" : undefined}>
               <h1 className="text-2xl font-semibold text-zinc-900">Messages</h1>
               <p className="mt-2 text-sm text-zinc-600">
