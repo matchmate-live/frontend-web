@@ -15,7 +15,7 @@ export default function ContactPage() {
     <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">
       <AboutNavClient />
       <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
-        <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
+        <div className="grid items-stretch gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
           <AdRail slot={ADS_SLOTS.contactDesktopLeft} />
           <ContactContent />
           <AdRail slot={ADS_SLOTS.contactDesktopRight} />
