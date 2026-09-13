@@ -30,18 +30,17 @@ export default function AdSlot({ slot, className }: AdSlotProps) {
   }
 
   return (
-    // AdSense's script can set an inline width (often with !important) directly on the <ins>,
-    // which would override any width/overflow classes placed on that same element. Clipping
-    // has to happen on this wrapper instead, since overflow-hidden only contains a child that's
-    // wider than it — it can't do anything if the element carrying the class is itself the one
-    // that's too wide.
+    // No data-full-width-responsive: that flag makes AdSense deliberately size the ad to the
+    // full device viewport width (via a negative margin + explicit width), breaking out of
+    // whatever padded container it's in — by design, not a bug. Plain data-ad-format="auto"
+    // sizes responsively to this element's own container instead, which is what we want here.
+    // The overflow-hidden wrapper stays as a safety net for anything AdSense still oversizes.
     <div className="w-full max-w-full overflow-hidden">
       <ins
         className={`adsbygoogle ${className}`}
         data-ad-client={clientId}
         data-ad-format="auto"
         data-ad-slot={slot}
-        data-full-width-responsive="true"
       />
     </div>
   );
