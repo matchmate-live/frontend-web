@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getCurrentUser } from "aws-amplify/auth";
-import { configureAmplifyAuth } from "@/lib/amplify";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import {
   fetchMyProfile,
   getPostAuthRedirectPath,
@@ -11,58 +10,37 @@ import {
   withOnboardingQuery,
 } from "@/lib/onboarding";
 
+// Renders immediately and redirects in the background if needed, instead of
+// blocking every page load on this check (a no-op for most visitors).
 export default function ProfileCompletionGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [allowed, setAllowed] = useState(false);
+  const { loading, isLoggedIn } = useAuth();
 
   useEffect(() => {
-    if (!configureAmplifyAuth()) {
-      setAllowed(true);
-      return;
-    }
-
-    if (shouldSkipProfileGate(pathname)) {
-      setAllowed(true);
-      return;
-    }
+    if (loading) return; // wait for the shared auth check to resolve
+    if (!isLoggedIn) return; // anonymous visitor — nothing to gate
+    if (shouldSkipProfileGate(pathname)) return;
 
     let cancelled = false;
 
     (async () => {
-      try {
-        await getCurrentUser();
-      } catch {
-        if (!cancelled) setAllowed(true);
-        return;
-      }
-
       try {
         const profile = await fetchMyProfile();
         if (cancelled) return;
         const next = getPostAuthRedirectPath(profile);
         if (next !== "/") {
           router.replace(withOnboardingQuery(next));
-          return;
         }
-        if (!cancelled) setAllowed(true);
       } catch {
-        if (!cancelled) setAllowed(true);
+        // Couldn't load the profile (network blip, etc.) — don't redirect on a guess.
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [pathname, router]);
-
-  if (!allowed) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
-        <p className="text-sm text-zinc-600">Checking your profile…</p>
-      </div>
-    );
-  }
+  }, [pathname, router, loading, isLoggedIn]);
 
   return <>{children}</>;
 }

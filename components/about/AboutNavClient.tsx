@@ -1,25 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getCurrentUser, signOut } from "aws-amplify/auth";
+import { useState } from "react";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
-import { configureAmplifyAuth } from "@/lib/amplify";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 export default function AboutNavClient() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const isConfigured = configureAmplifyAuth();
-    if (!isConfigured) {
-      setIsLoggedIn(false);
-      return;
-    }
-    getCurrentUser()
-      .then(() => setIsLoggedIn(true))
-      .catch(() => setIsLoggedIn(false));
-  }, []);
+  const { isLoggedIn, signOut } = useAuth();
 
   return (
     <>
@@ -28,10 +16,7 @@ export default function AboutNavClient() {
         isLoggedIn={isLoggedIn}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onLogout={async () => {
-          await signOut();
-          setIsLoggedIn(false);
-        }}
+        onLogout={signOut}
       />
     </>
   );

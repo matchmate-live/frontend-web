@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCurrentUser } from "aws-amplify/auth";
@@ -18,6 +18,8 @@ import {
   type ProfileResponse,
 } from "@/lib/onboarding";
 
+type PendingPhoto = { file: File; previewUrl: string };
+
 export default function OnboardingPhotosForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,8 +28,9 @@ export default function OnboardingPhotosForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [keys, setKeys] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
+  // Picked files, previewed locally — nothing touches S3 until submit (see saveWithPhotos).
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
+  const previewUrlsRef = useRef<Set<string>>(new Set());
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -59,9 +62,6 @@ export default function OnboardingPhotosForm() {
           router.replace(redirect);
           return;
         }
-        if (Array.isArray(p.photos) && p.photos.length > 0) {
-          setKeys(p.photos.slice(0, MAX_PROFILE_PHOTOS));
-        }
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load profile");
@@ -75,43 +75,51 @@ export default function OnboardingPhotosForm() {
     };
   }, [router]);
 
-  async function addFiles(fileList: FileList | null) {
+  // Revoke any preview URLs still outstanding if the form unmounts before submit. The ref
+  // is intentionally read at cleanup time (not captured at effect setup), since it's a
+  // stable, in-place-mutated Set used only to track live object URLs — we want whatever is
+  // actually outstanding at unmount, not a snapshot from when the effect first ran.
+  useEffect(() => {
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  function addFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
-    const remaining = MAX_PROFILE_PHOTOS - keys.length;
+    const remaining = MAX_PROFILE_PHOTOS - pendingPhotos.length;
     if (remaining <= 0) {
       setError(`You can upload at most ${MAX_PROFILE_PHOTOS} photos.`);
       return;
     }
     setError("");
     const files = Array.from(fileList).slice(0, remaining);
-    setUploading(true);
-    try {
-      const nextKeys = [...keys];
-      for (const file of files) {
-        const pre = validateImageFileBeforeProcessing(file);
-        if (pre) throw new Error(pre);
-        const jpeg = await fileToJpegBlob(file);
-        const { uploadUrl, key } = await presignUpload();
-        const put = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": "image/jpeg" },
-          body: jpeg,
-        });
-        if (!put.ok) {
-          throw new Error("Upload failed. Try again.");
-        }
-        nextKeys.push(key);
+    const accepted: PendingPhoto[] = [];
+    for (const file of files) {
+      const pre = validateImageFileBeforeProcessing(file);
+      if (pre) {
+        setError(pre);
+        break;
       }
-      setKeys(nextKeys);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
-    } finally {
-      setUploading(false);
+      const previewUrl = URL.createObjectURL(file);
+      previewUrlsRef.current.add(previewUrl);
+      accepted.push({ file, previewUrl });
+    }
+    if (accepted.length) {
+      setPendingPhotos((prev) => [...prev, ...accepted]);
     }
   }
 
-  function removeAt(index: number) {
-    setKeys((prev) => prev.filter((_, i) => i !== index));
+  function removePendingPhoto(index: number) {
+    setPendingPhotos((prev) => {
+      const target = prev[index];
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+        previewUrlsRef.current.delete(target.previewUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   }
 
   async function completePhotosPrompt() {
@@ -129,8 +137,29 @@ export default function OnboardingPhotosForm() {
 
   async function saveWithPhotos() {
     setSaving(true);
+    setError("");
     try {
-      await updateMyProfile({ photos: keys });
+      // Upload happens here, at confirm time — nothing pending has touched S3 before this.
+      const uploadedKeys: string[] = [];
+      for (const { file } of pendingPhotos) {
+        const jpeg = await fileToJpegBlob(file);
+        const { uploadUrl, key } = await presignUpload();
+        const put = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "image/jpeg" },
+          body: jpeg,
+        });
+        if (!put.ok) {
+          throw new Error("Upload failed. Try again.");
+        }
+        uploadedKeys.push(key);
+      }
+
+      // Explicit, because the backend only auto-derives this flag on the one call where
+      // onboardingStatus first becomes "complete" — by the time this form runs, that already
+      // happened during the profile step, so this call needs to say so itself or the user
+      // gets bounced back here forever (see getPostAuthRedirectPath).
+      await updateMyProfile({ photos: uploadedKeys, onboardingPhotosPromptCompleted: true });
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save photos");
@@ -142,7 +171,7 @@ export default function OnboardingPhotosForm() {
   async function finish(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (keys.length > 0) {
+    if (pendingPhotos.length > 0) {
       await saveWithPhotos();
       return;
     }
@@ -190,28 +219,40 @@ export default function OnboardingPhotosForm() {
           <input
             accept="image/*"
             className="block w-full cursor-pointer text-sm text-zinc-700 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-pink-200 file:px-3 file:py-2 file:text-zinc-900"
-            disabled={uploading || keys.length >= MAX_PROFILE_PHOTOS}
+            disabled={saving || pendingPhotos.length >= MAX_PROFILE_PHOTOS}
             id="photos-input"
-            multiple={keys.length < MAX_PROFILE_PHOTOS - 1}
+            multiple={pendingPhotos.length < MAX_PROFILE_PHOTOS - 1}
             type="file"
-            onChange={(e) => void addFiles(e.target.files)}
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
           />
         </div>
 
-        {keys.length > 0 ? (
+        {pendingPhotos.length > 0 ? (
           <ul className="space-y-2">
-            {keys.map((k, i) => (
+            {pendingPhotos.map((p, i) => (
               <li
-                className="flex items-center justify-between gap-2 rounded-lg border border-pink-100 bg-pink-50/30 px-3 py-2 text-sm text-zinc-800"
-                key={`${k}-${i}`}
+                className="flex items-center justify-between gap-3 rounded-lg border border-pink-100 bg-pink-50/30 px-3 py-2 text-sm text-zinc-800"
+                key={`pending-${p.previewUrl}`}
               >
-                <span className="truncate" title={k}>
-                  Photo {i + 1}
-                </span>
+                <div className="flex min-w-0 items-center gap-3">
+                  {/* Local blob preview — next/image can't optimize blob: URLs. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    alt={`Photo ${i + 1} preview`}
+                    className="h-12 w-12 shrink-0 rounded-md bg-pink-50 object-cover"
+                    src={p.previewUrl}
+                  />
+                  <span className="truncate" title={p.file.name}>
+                    Photo {i + 1}
+                  </span>
+                </div>
                 <button
                   className="cursor-pointer shrink-0 text-pink-400 underline"
                   type="button"
-                  onClick={() => removeAt(i)}
+                  onClick={() => removePendingPhoto(i)}
                 >
                   Remove
                 </button>
@@ -220,15 +261,15 @@ export default function OnboardingPhotosForm() {
           </ul>
         ) : null}
 
-        {!(showSkip && keys.length === 0) ? (
+        {!(showSkip && pendingPhotos.length === 0) ? (
           <button
             className="w-full cursor-pointer rounded-md bg-pink-300 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={saving || uploading}
+            disabled={saving}
             type="submit"
           >
             {saving
               ? "Saving…"
-              : keys.length > 0
+              : pendingPhotos.length > 0
                 ? "Save and continue"
                 : photosStepPending
                   ? "Continue without photos"
@@ -240,9 +281,9 @@ export default function OnboardingPhotosForm() {
       {showSkip ? (
         <button
           className={`w-full cursor-pointer rounded-md border border-pink-200 bg-white py-2.5 text-sm font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 ${
-            !(showSkip && keys.length === 0) ? "mt-3" : ""
+            !(showSkip && pendingPhotos.length === 0) ? "mt-3" : ""
           }`}
-          disabled={saving || uploading}
+          disabled={saving}
           type="button"
           onClick={() => setConfirmOpen(true)}
         >

@@ -13,7 +13,14 @@ export const ONBOARDING_QUERY = {
 } as const;
 
 /** Paths where `ProfileCompletionGate` does not run. */
-export const PROFILE_GATE_SKIP_PREFIXES = ["/auth", "/onboarding", "/profile", "/messages"] as const;
+export const PROFILE_GATE_SKIP_PREFIXES = [
+  "/auth",
+  "/onboarding",
+  "/profile",
+  "/messages",
+  "/about",
+  "/contact",
+] as const;
 
 export const SKIP_PHOTOS_DIALOG_COPY =
   "Adding photos helps others connect with you and can improve your matches. You can add or change photos anytime in your profile settings. Continue without photos for now?";
