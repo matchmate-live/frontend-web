@@ -59,3 +59,31 @@ export async function presignUpload(): Promise<{ uploadUrl: string; key: string 
   }
   return res.json() as Promise<{ uploadUrl: string; key: string }>;
 }
+
+/** Sends a 6-digit verification code to the caller's own registered email (via SES, not Cognito's). */
+export async function requestEmailVerificationCode(): Promise<void> {
+  const headers = await authHeader();
+  const res = await fetch("/api/email/verify/request", {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: "{}",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    await throwApiError(res);
+  }
+}
+
+/** Confirms the code sent by requestEmailVerificationCode. */
+export async function confirmEmailVerificationCode(code: string): Promise<void> {
+  const headers = await authHeader();
+  const res = await fetch("/api/email/verify/confirm", {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    await throwApiError(res);
+  }
+}

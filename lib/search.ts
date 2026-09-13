@@ -68,7 +68,10 @@ async function optionalSearchAuthHeaders(): Promise<{ headers: HeadersInit; isAu
   return { headers: {}, isAuthenticated: false };
 }
 
-export async function fetchProfilesByLocation(filters: FilterState) {
+export async function fetchProfilesByLocation(
+  filters: FilterState,
+  options?: { signal?: AbortSignal; nextToken?: string | null },
+) {
   const auth = await optionalSearchAuthHeaders();
   const query = new URLSearchParams({
     country: filters.country,
@@ -81,6 +84,7 @@ export async function fetchProfilesByLocation(filters: FilterState) {
     const lastSeen = getStoredLastSeen();
     if (lastSeen) query.set("lastSeen", lastSeen);
   }
+  if (options?.nextToken) query.set("nextToken", options.nextToken);
 
   const response = await fetch(`/api/search?${query.toString()}`, {
     method: "GET",
@@ -88,6 +92,7 @@ export async function fetchProfilesByLocation(filters: FilterState) {
       Accept: "application/json",
       ...auth.headers,
     },
+    signal: options?.signal,
   });
 
   if (!response.ok) {

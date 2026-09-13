@@ -4,13 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getCurrentUser, signOut } from "aws-amplify/auth";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import AdRail from "@/components/home/AdRail";
 import AdSlot from "@/components/ads/AdSlot";
 import { ADS_SLOTS } from "@/lib/adsConfig";
-import { configureAmplifyAuth } from "@/lib/amplify";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import { fetchProfileByUserId } from "@/lib/profileViewApi";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import type { ProfileResponse } from "@/lib/onboarding/types";
@@ -45,21 +44,10 @@ export default function PublicProfilePage() {
   const userId = typeof userIdRaw === "string" ? userIdRaw : Array.isArray(userIdRaw) ? userIdRaw[0] : "";
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn, signOut } = useAuth();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const ok = configureAmplifyAuth();
-    if (!ok) {
-      setIsLoggedIn(false);
-      return;
-    }
-    getCurrentUser()
-      .then(() => setIsLoggedIn(true))
-      .catch(() => setIsLoggedIn(false));
-  }, []);
 
   useEffect(() => {
     if (!userId?.trim()) {
@@ -98,10 +86,7 @@ export default function PublicProfilePage() {
         isLoggedIn={isLoggedIn}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onLogout={async () => {
-          await signOut();
-          setIsLoggedIn(false);
-        }}
+        onLogout={signOut}
       />
 
       {/* Mobile: ad top (slot A) */}

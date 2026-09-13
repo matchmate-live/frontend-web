@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ProfileCompletionGate from "@/components/profile/ProfileCompletionGate";
+import { AuthProvider } from "@/lib/auth/AuthProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,7 +40,9 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         ) : null}
-        <ProfileCompletionGate>{children}</ProfileCompletionGate>
+        <AuthProvider>
+          <ProfileCompletionGate>{children}</ProfileCompletionGate>
+        </AuthProvider>
         <SiteFooter />
       </body>
     </html>

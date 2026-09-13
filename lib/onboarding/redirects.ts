@@ -22,5 +22,8 @@ export function getRedirectFromPhotosStep(profile: ProfileResponse): string | nu
   if (profile.onboardingStatus === "signup_stub" || profile.onboardingStatus !== "complete") {
     return ONBOARDING_ROUTES.profile;
   }
+  if (profile.onboardingPhotosPromptCompleted !== false) {
+    return "/";
+  }
   return null;
 }

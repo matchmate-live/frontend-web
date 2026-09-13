@@ -1,21 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
-import { configureAmplifyAuth } from "@/lib/amplify";
-import { getCurrentUser, signOut } from "aws-amplify/auth";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 export default function OnboardingChrome({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    if (!configureAmplifyAuth()) return;
-    getCurrentUser()
-      .then(() => setIsLoggedIn(true))
-      .catch(() => setIsLoggedIn(false));
-  }, []);
+  const { isLoggedIn, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-pink-50/10 text-zinc-900">
@@ -24,10 +16,7 @@ export default function OnboardingChrome({ children }: { children: React.ReactNo
         isLoggedIn={isLoggedIn}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onLogout={async () => {
-          await signOut();
-          setIsLoggedIn(false);
-        }}
+        onLogout={signOut}
       />
       {children}
     </div>

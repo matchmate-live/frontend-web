@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getCurrentUser, signOut } from "aws-amplify/auth";
-import { configureAmplifyAuth } from "@/lib/amplify";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import {
   DEFAULT_ANON_GENDER,
   DEFAULT_MAX_AGE,
   DEFAULT_MIN_AGE,
   FilterState,
   SearchProfile,
+  SearchResponse,
   fetchProfilesByLocation,
 } from "@/lib/search";
 import { guessCountryFromTimezone, reverseGeocode } from "@/lib/location";
@@ -20,14 +20,20 @@ import FilterBar from "@/components/home/FilterBar";
 import FilterDialog from "@/components/home/FilterDialog";
 import AdRail from "@/components/home/AdRail";
 import ProfilesGrid from "@/components/home/ProfilesGrid";
+import EmailVerificationBanner from "@/components/home/EmailVerificationBanner";
 
 export default function Home() {
   const hasAutoRequestedRef = useRef(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const { isLoggedIn, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [profiles, setProfiles] = useState<SearchProfile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const [nextToken, setNextToken] = useState<string | null>(null);
   const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     minAge: DEFAULT_MIN_AGE,
@@ -49,24 +55,94 @@ export default function Home() {
     [draftFilters.country],
   );
 
-  async function runSearch(nextFilters: FilterState) {
-    setLoading(true);
-    setProfiles([]);
+  /**
+   * Shared control flow for both a fresh search and "load more": cancels any
+   * still-in-flight request first (so a slower, older response can never land
+   * after — and overwrite — a newer one), then routes the result through
+   * whichever callbacks the caller wants. Only what happens with the result
+   * differs between runSearch (replace) and loadMore (append).
+   */
+  async function performSearch(
+    nextFilters: FilterState,
+    {
+      nextToken: pageToken,
+      onStart,
+      onSuccess,
+      onError,
+      onSettle,
+      fallbackErrorMessage,
+    }: {
+      nextToken?: string | null;
+      onStart: () => void;
+      onSuccess: (payload: SearchResponse) => void;
+      onError: (message: string) => void;
+      onSettle: () => void;
+      fallbackErrorMessage: string;
+    },
+  ) {
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+
+    onStart();
     try {
-      const payload = await fetchProfilesByLocation(nextFilters);
-      setProfiles(payload.items ?? []);
-    } catch {
-      setProfiles([]);
+      const payload = await fetchProfilesByLocation(nextFilters, {
+        signal: controller.signal,
+        nextToken: pageToken,
+      });
+      if (searchAbortRef.current !== controller) return; // superseded by a newer search
+      onSuccess(payload);
+    } catch (err) {
+      if (controller.signal.aborted) return; // cancelled; a newer search owns state now
+      onError(err instanceof Error && err.message ? err.message : fallbackErrorMessage);
     } finally {
-      setLoading(false);
+      if (searchAbortRef.current === controller) {
+        onSettle();
+      }
     }
   }
 
+  async function runSearch(nextFilters: FilterState) {
+    await performSearch(nextFilters, {
+      onStart: () => {
+        setLoading(true);
+        setProfiles([]);
+        setSearchError(null);
+        setLoadMoreError(null);
+        setNextToken(null);
+      },
+      onSuccess: (payload) => {
+        setProfiles(payload.items ?? []);
+        setNextToken(payload.nextToken ?? null);
+      },
+      onError: (message) => {
+        setProfiles([]);
+        setSearchError(message);
+      },
+      onSettle: () => setLoading(false),
+      fallbackErrorMessage: "We couldn't load profiles right now. Please try again.",
+    });
+  }
+
+  async function loadMore() {
+    if (!nextToken || loading || loadingMore) return;
+    await performSearch(filters, {
+      nextToken,
+      onStart: () => setLoadingMore(true),
+      onSuccess: (payload) => {
+        setProfiles((prev) => [...prev, ...(payload.items ?? [])]);
+        setNextToken(payload.nextToken ?? null);
+      },
+      onError: setLoadMoreError,
+      onSettle: () => setLoadingMore(false),
+      fallbackErrorMessage: "Couldn't load more profiles.",
+    });
+  }
+
   useEffect(() => {
-    configureAmplifyAuth();
-    getCurrentUser()
-      .then(() => setIsLoggedIn(true))
-      .catch(() => setIsLoggedIn(false));
+    return () => {
+      searchAbortRef.current?.abort();
+    };
   }, []);
 
   async function requestLocationAndSearch() {
@@ -148,10 +224,7 @@ export default function Home() {
         isLoggedIn={isLoggedIn}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onLogout={async () => {
-          await signOut();
-          setIsLoggedIn(false);
-        }}
+        onLogout={signOut}
       />
 
       <div className="mx-auto w-full max-w-7xl px-6 py-6">
@@ -159,6 +232,7 @@ export default function Home() {
           <AdRail slot={ADS_SLOTS.desktopLeft} />
 
           <div>
+            <EmailVerificationBanner />
             <FilterBar
               filters={filters}
               hasRequestedLocation={hasRequestedLocation}
@@ -167,7 +241,17 @@ export default function Home() {
             />
 
             {loading ? <p className="mt-8 text-zinc-800">Loading profiles...</p> : null}
-            {!loading && hasRequestedLocation ? <ProfilesGrid profiles={profiles} /> : null}
+            {!loading && hasRequestedLocation ? (
+              <ProfilesGrid
+                profiles={profiles}
+                errorMessage={searchError}
+                onRetry={() => runSearch(filters)}
+                hasMore={Boolean(nextToken)}
+                loadingMore={loadingMore}
+                loadMoreError={loadMoreError}
+                onLoadMore={loadMore}
+              />
+            ) : null}
           </div>
 
           <AdRail slot={ADS_SLOTS.desktopRight} />

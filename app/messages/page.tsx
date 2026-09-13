@@ -1,28 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getCurrentUser, signOut } from "aws-amplify/auth";
+import { useState } from "react";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import AdRail from "@/components/home/AdRail";
 import AdSlot from "@/components/ads/AdSlot";
 import { ADS_SLOTS } from "@/lib/adsConfig";
-import { configureAmplifyAuth } from "@/lib/amplify";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 export default function MessagesPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const isConfigured = configureAmplifyAuth();
-    if (!isConfigured) {
-      setIsLoggedIn(false);
-      return;
-    }
-    getCurrentUser()
-      .then(() => setIsLoggedIn(true))
-      .catch(() => setIsLoggedIn(false));
-  }, []);
+  const { isLoggedIn, signOut } = useAuth();
 
   return (
     <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">
@@ -34,10 +22,7 @@ export default function MessagesPage() {
         isLoggedIn={isLoggedIn}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onLogout={async () => {
-          await signOut();
-          setIsLoggedIn(false);
-        }}
+        onLogout={signOut}
       />
 
       <div className="mx-auto w-full max-w-7xl px-6 py-6">
