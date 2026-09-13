@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MatchMate.live Web",
-  description: "MatchMate.live frontend with Cognito authentication",
+  title: "MatchMate.live",
+  description: "MatchMate.live is a free dating and matrimonial platform designed to help people find meaningful, long-term connections and serious marriage prospects.",
 };
 
 export default function RootLayout({
