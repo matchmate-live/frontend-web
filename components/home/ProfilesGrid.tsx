@@ -39,7 +39,7 @@ export default function ProfilesGrid({
 
             if ((index + 1) % 4 === 0) {
               cards.push(
-                <div key={`mobile-inline-ad-${index}`} className="col-span-full sm:hidden">
+                <div key={`mobile-inline-ad-${index}`} className="col-span-full lg:hidden">
                   <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
                     <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
                     <AdSlot
@@ -72,7 +72,7 @@ export default function ProfilesGrid({
         </div>
       ) : null}
 
-      <div className="mt-6 sm:hidden">
+      <div className="mt-6 lg:hidden">
         <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
           <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
           <AdSlot

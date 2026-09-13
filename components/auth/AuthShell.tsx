@@ -57,7 +57,7 @@ export default function AuthShell({ mode, title, subtitle, children }: AuthShell
 
         <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-between sm:min-h-0 lg:self-center">
           {showMobileAuthAds ? (
-            <div className="mb-4 sm:hidden">
+            <div className="mb-4 lg:hidden">
               <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
                 <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
                 <AdSlot className="block min-h-[140px] w-full rounded-md bg-pink-50/50" slot={slots.mobileTop} />
@@ -81,7 +81,7 @@ export default function AuthShell({ mode, title, subtitle, children }: AuthShell
           </div>
 
           {showMobileAuthAds ? (
-            <div className="mt-4 sm:hidden">
+            <div className="mt-4 lg:hidden">
               <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
                 <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
                 <AdSlot className="block min-h-[140px] w-full rounded-md bg-pink-50/50" slot={slots.mobileBottom} />
