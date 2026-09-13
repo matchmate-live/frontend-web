@@ -59,7 +59,7 @@ export default function MessagesPage() {
           <AdRail slot={ADS_SLOTS.desktopRight} />
         </div>
 
-        <div className="mt-6 sm:hidden">
+        <div className="mt-6 lg:hidden">
           <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
             <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
             <AdSlot
