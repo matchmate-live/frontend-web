@@ -21,3 +21,17 @@ body {
      whole page to scroll horizontally. */
   overflow-x: hidden;
 }
+
+/*
+ * AdSense's own script sets an inline width/margin-left directly on the .adsbygoogle <ins>
+ * (e.g. width: 400px; margin-left: -37px), sized off the viewport rather than the actual
+ * available space inside a padded container — wider than any wrapper's overflow-hidden was
+ * reliably containing. A plain inline style (no !important) loses to an !important rule in
+ * a stylesheet, so this forces the ad back to fitting its container regardless of whatever
+ * Google's script injects.
+ */
+ins.adsbygoogle {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
