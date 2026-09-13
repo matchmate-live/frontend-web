@@ -9,6 +9,7 @@ import FloatingInput from "@/components/ui/FloatingInput";
 import HelpTooltipIcon from "@/components/ui/HelpTooltipIcon";
 import AdSlot from "@/components/ads/AdSlot";
 import MobileDrawer from "@/components/home/MobileDrawer";
+import Logo from "@/icons/logo.svg";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import {
   AuthFieldErrors,
@@ -83,7 +84,8 @@ function CardShell({
     <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">
       <nav className="w-full border-b border-pink-200 bg-white">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link className="text-xl font-semibold text-pink-300" href="/">
+          <Link className="flex items-center gap-2 text-xl font-semibold text-pink-300" href="/">
+            <Logo className="h-7 w-7 shrink-0" aria-hidden />
             MatchMate.live
           </Link>
           <button
@@ -118,10 +120,14 @@ function CardShell({
             </div>
           </div>
 
-          <p className="mb-3 text-center text-xl font-semibold text-pink-300 sm:hidden">MatchMate.live</p>
+          <p className="mb-3 flex items-center justify-center gap-2 text-center text-xl font-semibold text-pink-300 sm:hidden">
+            <Logo className="h-6 w-6 shrink-0" aria-hidden />
+            MatchMate.live
+          </p>
 
           <div className="w-full p-0 sm:rounded-2xl sm:border sm:border-pink-200 sm:bg-white sm:p-6 sm:shadow-sm">
-            <p className="mb-3 hidden text-center text-2xl font-semibold text-pink-300 sm:block">
+            <p className="mb-3 hidden items-center justify-center gap-2 text-center text-2xl font-semibold text-pink-300 sm:flex">
+              <Logo className="h-7 w-7 shrink-0" aria-hidden />
               MatchMate.live
             </p>
             <h1 className="text-xl font-semibold text-zinc-900">{title}</h1>

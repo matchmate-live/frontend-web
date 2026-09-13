@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "@/icons/logo.svg";
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
@@ -8,7 +9,8 @@ export default function SiteFooter() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
         <div className="grid gap-6 md:grid-cols-3">
           <section>
-            <Link className="text-lg font-semibold text-pink-300" href="/">
+            <Link className="flex items-center gap-2 text-lg font-semibold text-pink-300" href="/">
+              <Logo className="h-6 w-6 shrink-0" aria-hidden />
               MatchMate.live
             </Link>
             <p className="mt-2 text-sm text-zinc-700">
