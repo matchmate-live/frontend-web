@@ -5,6 +5,7 @@ import AboutIcon from "@/icons/about.svg";
 import ContactIcon from "@/icons/contact.svg";
 import HomeIcon from "@/icons/home.svg";
 import MessagesIcon from "@/icons/messages.svg";
+import Logo from "@/icons/logo.svg";
 
 type MobileDrawerProps = {
   open: boolean;
@@ -34,7 +35,10 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
       >
         <div className="flex h-full flex-col">
         <div className="mb-4 relative">
-          <p className="text-left text-xl font-semibold text-pink-300">MatchMate.live</p>
+          <p className="flex items-center gap-2 text-left text-xl font-semibold text-pink-300">
+            <Logo className="h-6 w-6 shrink-0" aria-hidden />
+            MatchMate.live
+          </p>
           <button
             aria-label="Close menu"
             className="absolute right-0 top-1/2 -translate-y-1/2 cursor-pointer rounded-md border border-pink-200 p-2 text-pink-300"
