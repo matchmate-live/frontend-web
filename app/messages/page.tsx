@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import AdRail from "@/components/home/AdRail";
@@ -44,6 +45,12 @@ export default function MessagesPage() {
                   <p className="mt-2 text-sm text-zinc-600">
                     You must be logged in to start conversations.
                   </p>
+                  <Link
+                    className="mt-4 inline-block rounded-md bg-pink-300 px-4 py-2 text-sm text-white"
+                    href="/auth/sign-in"
+                  >
+                    Sign in
+                  </Link>
                 </div>
               </div>
             ) : null}
