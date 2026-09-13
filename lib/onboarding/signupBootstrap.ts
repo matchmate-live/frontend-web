@@ -1,4 +1,5 @@
 import type { BootstrapSignupBody } from "./types";
+import { readApiErrorMessage } from "@/lib/api/clientError";
 
 export type BootstrapResult =
   | { ok: true; status: number }
@@ -29,10 +30,9 @@ export async function postSignupBootstrap(body: BootstrapSignupBody): Promise<Bo
     return { ok: true, status: res.status };
   }
 
-  const data = (await res.json().catch(() => ({}))) as { message?: string };
   return {
     ok: false,
     status: res.status,
-    message: typeof data.message === "string" ? data.message : "Could not save your account details. Try again.",
+    message: await readApiErrorMessage(res, "Could not save your account details. Try again."),
   };
 }

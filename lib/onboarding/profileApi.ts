@@ -1,5 +1,6 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 import type { ProfileResponse } from "./types";
+import { throwApiError } from "@/lib/api/clientError";
 
 async function authHeader(): Promise<HeadersInit> {
   const session = await fetchAuthSession();
@@ -10,14 +11,9 @@ async function authHeader(): Promise<HeadersInit> {
   return { Authorization: `Bearer ${token}` };
 }
 
-async function parseErrorMessage(res: Response, data: unknown): Promise<string> {
-  const body = data as { message?: string };
-  return typeof body.message === "string" ? body.message : `Request failed (${res.status})`;
-}
-
 export async function fetchMyProfile(): Promise<ProfileResponse | null> {
   const headers = await authHeader();
-  let res = await fetch("/api/profiles/me", { headers, cache: "no-store" });
+  const res = await fetch("/api/profiles/me", { headers, cache: "no-store" });
   if (res.status === 404) {
     const ensure = await fetch("/api/signup/ensure", {
       method: "POST",
@@ -25,15 +21,13 @@ export async function fetchMyProfile(): Promise<ProfileResponse | null> {
       body: "{}",
       cache: "no-store",
     });
-    const ensured = await ensure.json().catch(() => ({}));
     if (!ensure.ok) {
-      throw new Error(await parseErrorMessage(ensure, ensured));
+      await throwApiError(ensure);
     }
-    return ensured as ProfileResponse;
+    return ensure.json() as Promise<ProfileResponse>;
   }
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(await parseErrorMessage(res, err));
+    await throwApiError(res);
   }
   return res.json() as Promise<ProfileResponse>;
 }
@@ -46,11 +40,10 @@ export async function updateMyProfile(body: Record<string, unknown>): Promise<Pr
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(await parseErrorMessage(res, data));
+    await throwApiError(res);
   }
-  return data as ProfileResponse;
+  return res.json() as Promise<ProfileResponse>;
 }
 
 export async function presignUpload(): Promise<{ uploadUrl: string; key: string }> {
@@ -61,9 +54,8 @@ export async function presignUpload(): Promise<{ uploadUrl: string; key: string 
     body: JSON.stringify({}),
     cache: "no-store",
   });
-  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(await parseErrorMessage(res, data));
+    await throwApiError(res);
   }
-  return data as { uploadUrl: string; key: string };
+  return res.json() as Promise<{ uploadUrl: string; key: string }>;
 }
