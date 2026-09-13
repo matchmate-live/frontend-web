@@ -26,12 +26,12 @@ export default function AdSlot({ slot, className }: AdSlotProps) {
   }, [clientId, slot]);
 
   if (!clientId) {
-    return <div className={className} />;
+    return <div className={`max-w-full overflow-hidden ${className}`} />;
   }
 
   return (
     <ins
-      className={`adsbygoogle ${className}`}
+      className={`adsbygoogle max-w-full overflow-hidden ${className}`}
       data-ad-client={clientId}
       data-ad-format="auto"
       data-ad-slot={slot}

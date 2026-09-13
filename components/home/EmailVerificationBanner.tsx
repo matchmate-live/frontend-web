@@ -17,6 +17,7 @@ const RESEND_COOLDOWN_SECONDS = 60;
 export default function EmailVerificationBanner() {
   const { isLoggedIn, loading: authLoading } = useAuth();
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [justVerified, setJustVerified] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState<string | undefined>(undefined);
@@ -88,6 +89,8 @@ export default function EmailVerificationBanner() {
     try {
       await confirmEmailVerificationCode(code.trim());
       setEmailVerified(true);
+      setJustVerified(true);
+      setTimeout(() => setJustVerified(false), 4000);
     } catch (confirmErr) {
       setError(confirmErr instanceof Error ? confirmErr.message : "Incorrect code. Try again.");
     } finally {
@@ -95,7 +98,16 @@ export default function EmailVerificationBanner() {
     }
   }
 
-  if (!isLoggedIn || emailVerified !== false) return null;
+  if (!isLoggedIn) return null;
+  if (emailVerified !== false && !justVerified) return null;
+
+  if (justVerified) {
+    return (
+      <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+        Email verified successfully.
+      </div>
+    );
+  }
 
   return (
     <div className="mb-6 rounded-xl border border-pink-200 bg-pink-50/60 p-4">
