@@ -19,6 +19,7 @@ import MobileDrawer from "@/components/home/MobileDrawer";
 import FilterBar from "@/components/home/FilterBar";
 import FilterDialog from "@/components/home/FilterDialog";
 import AdRail from "@/components/home/AdRail";
+import AdSlot from "@/components/ads/AdSlot";
 import ProfilesGrid from "@/components/home/ProfilesGrid";
 import EmailVerificationBanner from "@/components/home/EmailVerificationBanner";
 
@@ -252,6 +253,17 @@ export default function Home() {
                 onLoadMore={loadMore}
               />
             ) : null}
+
+            {/* Always shown, regardless of search loading state — an ad shouldn't wait on the request. */}
+            <div className="mt-6 lg:hidden">
+              <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
+                <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
+                <AdSlot
+                  className="block min-h-[220px] w-full rounded-md bg-pink-50/50"
+                  slot={ADS_SLOTS.mobileBottom}
+                />
+              </div>
+            </div>
           </div>
 
           <AdRail slot={ADS_SLOTS.desktopRight} />
