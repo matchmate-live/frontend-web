@@ -1,6 +1,7 @@
 "use client";
 
 import { SKIP_PHOTOS_DIALOG_COPY } from "@/lib/onboarding";
+import { useModalA11y } from "@/hooks/useModalA11y";
 
 type Props = {
   open: boolean;
@@ -10,10 +11,13 @@ type Props = {
 };
 
 export default function SkipPhotosDialog({ open, busy, onCancel, onConfirm }: Props) {
+  const dialogRef = useModalA11y<HTMLDivElement>(open, onCancel);
+
   if (!open) return null;
 
   return (
     <div
+      ref={dialogRef}
       aria-labelledby="skip-dialog-title"
       aria-modal="true"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"

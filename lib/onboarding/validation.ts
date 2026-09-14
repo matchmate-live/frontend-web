@@ -116,7 +116,7 @@ export function isSafeRelativeAppPath(path: string): boolean {
 }
 
 export function validateImageFileBeforeProcessing(file: File): string | undefined {
-  if (file.size > MAX_IMAGE_BYTES * 2) {
+  if (file.size > MAX_IMAGE_BYTES) {
     return "Each image must be 5 MB or smaller.";
   }
   return undefined;

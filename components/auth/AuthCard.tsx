@@ -9,7 +9,7 @@ import FloatingInput from "@/components/ui/FloatingInput";
 import HelpTooltipIcon from "@/components/ui/HelpTooltipIcon";
 import AdSlot from "@/components/ads/AdSlot";
 import MobileDrawer from "@/components/home/MobileDrawer";
-import Logo from "@/icons/logo.svg";
+import SiteLogo from "@/components/layout/SiteLogo";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import {
   AuthFieldErrors,
@@ -34,10 +34,17 @@ type Props = {
   initialEmail?: string;
   /** Safe in-app path after sign-in (e.g. `/onboarding/profile`). */
   nextHref?: string;
+  /** Set by lib/api/authRedirect.ts when redirected here after a 401 — picks the subtitle. */
+  reason?: string;
 };
 
 const PASSWORD_REQUIREMENTS_TEXT =
   "Password must be at least 12 characters and include uppercase, lowercase, number, and symbol.";
+
+const SIGN_IN_REASON_SUBTITLES: Record<string, string> = {
+  expired: "Your session has expired. Please sign in again.",
+  required: "Please sign in to continue.",
+};
 
 /** Post-authentication redirect shared by sign-in and (now auto-confirmed, immediately signed-in) sign-up. */
 async function redirectAfterAuth(
@@ -84,10 +91,7 @@ function CardShell({
     <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">
       <nav className="w-full border-b border-pink-200 bg-white">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link className="flex items-center gap-2 text-xl font-semibold text-pink-300" href="/">
-            <Logo className="h-7 w-7 shrink-0" aria-hidden />
-            MatchMate.live
-          </Link>
+          <SiteLogo className="flex text-xl" href="/" iconClassName="h-7 w-7" />
           <button
             aria-controls="mobile-nav-drawer"
             aria-expanded={menuOpen}
@@ -120,16 +124,13 @@ function CardShell({
             </div>
           </div>
 
-          <p className="mb-3 flex items-center justify-center gap-2 text-center text-xl font-semibold text-pink-300 sm:hidden">
-            <Logo className="h-6 w-6 shrink-0" aria-hidden />
-            MatchMate.live
-          </p>
+          <SiteLogo className="mb-3 flex justify-center text-center text-xl sm:hidden" iconClassName="h-6 w-6" />
 
           <div className="w-full p-0 sm:rounded-2xl sm:border sm:border-pink-200 sm:bg-white sm:p-6 sm:shadow-sm">
-            <p className="mb-3 hidden items-center justify-center gap-2 text-center text-2xl font-semibold text-pink-300 sm:flex">
-              <Logo className="h-7 w-7 shrink-0" aria-hidden />
-              MatchMate.live
-            </p>
+            <SiteLogo
+              className="mb-3 hidden justify-center text-center text-2xl sm:flex"
+              iconClassName="h-7 w-7"
+            />
             <h1 className="text-xl font-semibold text-zinc-900">{title}</h1>
             <p className="mt-1 text-sm text-zinc-600">{subtitle}</p>
             <div className="mt-6">{children}</div>
@@ -161,7 +162,7 @@ function ErrorText({ text }: { text: string }) {
   return <p className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-700">{text}</p>;
 }
 
-export default function AuthCard({ mode, initialEmail = "", nextHref }: Props) {
+export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: Props) {
   const isConfigured = configureAmplifyAuth();
   const router = useRouter();
   const [error, setError] = useState("");
@@ -277,7 +278,13 @@ export default function AuthCard({ mode, initialEmail = "", nextHref }: Props) {
 
   if (mode === "signIn") {
     return (
-      <CardShell mode={mode} title="Sign in" subtitle="Use your MatchMate.live account">
+      <CardShell
+        mode={mode}
+        title="Sign in"
+        subtitle={
+          (reason && SIGN_IN_REASON_SUBTITLES[reason]) ?? "Use your MatchMate.live account"
+        }
+      >
         {error && <ErrorText text={error} />}
         <form className="space-y-3" onSubmit={handleSignIn}>
           <FloatingInput

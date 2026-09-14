@@ -35,7 +35,11 @@ export default function ProfilesGrid({
           )
         ) : (
           profiles.flatMap((profile, index) => {
-            const cards: React.ReactNode[] = [<ProfileCard key={profile.userId} profile={profile} />];
+            // Only the very first card is realistically the LCP element — priority on every
+            // card would defeat lazy-loading for the rest of the grid.
+            const cards: React.ReactNode[] = [
+              <ProfileCard key={profile.userId} priority={index === 0} profile={profile} />,
+            ];
 
             if ((index + 1) % 4 === 0) {
               cards.push(

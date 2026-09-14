@@ -15,6 +15,8 @@ const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
 type ProfileCardProps = {
   profile: SearchProfile;
+  /** Pass true only for the first card actually above the fold — see ProfilesGrid. */
+  priority?: boolean;
 };
 
 function isRecentlyOnline(lastSeen: number | undefined): boolean {
@@ -51,7 +53,7 @@ function displayCityCountry(profile: SearchProfile): string {
   return "—";
 }
 
-export default function ProfileCard({ profile }: ProfileCardProps) {
+export default function ProfileCard({ profile, priority = false }: ProfileCardProps) {
   const name = profile.name?.trim() || "Member";
   const photoSrc = profilePhotoSrc(profile.photos?.[0]);
   const genderLabel = displayGender(profile);
@@ -69,9 +71,10 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
         {/* object-contain = full photo visible; letterboxing uses bg (no cropping like object-cover). */}
         <div className="relative mx-auto flex aspect-[5/4] w-full max-w-full min-w-0 shrink-0 items-center justify-center overflow-hidden bg-pink-50/90 sm:mx-0 sm:aspect-auto sm:h-28 sm:max-w-[7rem] sm:w-28 sm:rounded-lg">
           <Image
-            alt=""
+            alt={`${name}'s photo`}
             className="max-h-full max-w-full object-contain object-center"
             fill
+            priority={priority}
             sizes="(max-width: 639px) 100vw, 112px"
             src={photoSrc}
           />

@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { getCurrentUser } from "aws-amplify/auth";
 import SkipPhotosDialog from "@/components/onboarding/SkipPhotosDialog";
 import { configureAmplifyAuth } from "@/lib/amplify";
+import { redirectIfSessionExpired } from "@/lib/api/authRedirect";
 import { fileToJpegBlob, MAX_PROFILE_PHOTOS } from "@/lib/imageUpload";
 import {
   fetchMyProfile,
@@ -22,6 +23,7 @@ type PendingPhoto = { file: File; previewUrl: string };
 
 export default function OnboardingPhotosForm() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const firstVisit = searchParams.get(ONBOARDING_QUERY.firstVisit) === "1";
 
@@ -128,7 +130,9 @@ export default function OnboardingPhotosForm() {
       await updateMyProfile({ onboardingPhotosPromptCompleted: true });
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not continue");
+      if (!redirectIfSessionExpired(err, router, pathname)) {
+        setError(err instanceof Error ? err.message : "Could not continue");
+      }
     } finally {
       setSaving(false);
       setConfirmOpen(false);
@@ -162,7 +166,9 @@ export default function OnboardingPhotosForm() {
       await updateMyProfile({ photos: uploadedKeys, onboardingPhotosPromptCompleted: true });
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save photos");
+      if (!redirectIfSessionExpired(err, router, pathname)) {
+        setError(err instanceof Error ? err.message : "Could not save photos");
+      }
     } finally {
       setSaving(false);
     }
@@ -280,9 +286,7 @@ export default function OnboardingPhotosForm() {
 
       {showSkip ? (
         <button
-          className={`w-full cursor-pointer rounded-md border border-pink-200 bg-white py-2.5 text-sm font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 ${
-            !(showSkip && pendingPhotos.length === 0) ? "mt-3" : ""
-          }`}
+          className="mt-3 w-full cursor-pointer rounded-md border border-pink-200 bg-white py-2.5 text-sm font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={saving}
           type="button"
           onClick={() => setConfirmOpen(true)}

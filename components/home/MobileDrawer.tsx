@@ -5,7 +5,8 @@ import AboutIcon from "@/icons/about.svg";
 import ContactIcon from "@/icons/contact.svg";
 import HomeIcon from "@/icons/home.svg";
 import MessagesIcon from "@/icons/messages.svg";
-import Logo from "@/icons/logo.svg";
+import SiteLogo from "@/components/layout/SiteLogo";
+import { useModalA11y } from "@/hooks/useModalA11y";
 
 type MobileDrawerProps = {
   open: boolean;
@@ -15,11 +16,17 @@ type MobileDrawerProps = {
 };
 
 export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: MobileDrawerProps) {
+  const drawerRef = useModalA11y<HTMLDivElement>(open, onClose);
+
   return (
     <div
+      ref={drawerRef}
       className={`fixed inset-0 z-50 transition-opacity duration-300 ${
         open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       }`}
+      // Kept mounted (for the slide transition) even while closed — inert removes it from
+      // tab order and the accessibility tree so it can't be reached while invisible.
+      inert={!open}
     >
       <button
         aria-label="Close menu backdrop"
@@ -28,17 +35,17 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
         onClick={onClose}
       />
       <aside
+        aria-label="Navigation menu"
+        aria-modal="true"
         id="mobile-nav-drawer"
+        role="dialog"
         className={`absolute right-0 top-0 h-full w-72 border-l border-pink-200 bg-white p-4 shadow-xl transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col">
         <div className="mb-4 relative">
-          <p className="flex items-center gap-2 text-left text-xl font-semibold text-pink-300">
-            <Logo className="h-6 w-6 shrink-0" aria-hidden />
-            MatchMate.live
-          </p>
+          <SiteLogo className="flex text-left text-xl" iconClassName="h-6 w-6" />
           <button
             aria-label="Close menu"
             className="absolute right-0 top-1/2 -translate-y-1/2 cursor-pointer rounded-md border border-pink-200 p-2 text-pink-300"

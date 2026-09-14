@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { getCurrentUser } from "aws-amplify/auth";
 import FloatingInput from "@/components/ui/FloatingInput";
 import { configureAmplifyAuth } from "@/lib/amplify";
+import { redirectIfSessionExpired } from "@/lib/api/authRedirect";
 import { getCountryOptions, getCityOptionsByCountry } from "@/lib/geoData";
 import { titleCase } from "@/lib/location";
 import {
@@ -23,6 +24,7 @@ import {
 
 export default function OnboardingProfilePage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -121,7 +123,9 @@ export default function OnboardingProfilePage() {
       });
       router.push(withOnboardingQuery(ONBOARDING_ROUTES.photos));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save profile");
+      if (!redirectIfSessionExpired(err, router, pathname)) {
+        setError(err instanceof Error ? err.message : "Could not save profile");
+      }
     } finally {
       setSaving(false);
     }
