@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getCurrentUser, signOut as amplifySignOut } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
 import { configureAmplifyAuth } from "@/lib/amplify";
+import { markHadSession } from "@/lib/auth/sessionFlag";
 
 type AuthContextValue = {
   /** True once the initial check has resolved (either way) — false only during that first check. */
@@ -31,8 +32,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // no separate synchronous branch needed.
     configureAmplifyAuth();
     getCurrentUser()
-      .then(() => setIsLoggedIn(true))
-      .catch(() => setIsLoggedIn(false))
+      .then(() => {
+        setIsLoggedIn(true);
+        markHadSession(true);
+      })
+      .catch(() => {
+        setIsLoggedIn(false);
+        markHadSession(false);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -52,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     await amplifySignOut();
     setIsLoggedIn(false);
+    markHadSession(false);
   }, []);
 
   const value = useMemo<AuthContextValue>(

@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getCurrentUser } from "aws-amplify/auth";
 import SkipPhotosDialog from "@/components/onboarding/SkipPhotosDialog";
 import { configureAmplifyAuth } from "@/lib/amplify";
-import { redirectIfSessionExpired } from "@/lib/api/authRedirect";
+import { isSessionExpiredError } from "@/lib/api/authRedirect";
 import { fileToJpegBlob, MAX_PROFILE_PHOTOS } from "@/lib/imageUpload";
 import {
   fetchMyProfile,
@@ -23,7 +23,6 @@ type PendingPhoto = { file: File; previewUrl: string };
 
 export default function OnboardingPhotosForm() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const firstVisit = searchParams.get(ONBOARDING_QUERY.firstVisit) === "1";
 
@@ -124,15 +123,21 @@ export default function OnboardingPhotosForm() {
     });
   }
 
+  // A real 401 already triggered the session-expired toast (see clientError.ts); this
+  // just needs to skip the redundant inline error for that one case.
+  function handleSaveError(err: unknown, fallbackMessage: string) {
+    if (!isSessionExpiredError(err)) {
+      setError(err instanceof Error ? err.message : fallbackMessage);
+    }
+  }
+
   async function completePhotosPrompt() {
     setSaving(true);
     try {
       await updateMyProfile({ onboardingPhotosPromptCompleted: true });
       router.push("/");
     } catch (err) {
-      if (!redirectIfSessionExpired(err, router, pathname)) {
-        setError(err instanceof Error ? err.message : "Could not continue");
-      }
+      handleSaveError(err, "Could not continue");
     } finally {
       setSaving(false);
       setConfirmOpen(false);
@@ -166,9 +171,7 @@ export default function OnboardingPhotosForm() {
       await updateMyProfile({ photos: uploadedKeys, onboardingPhotosPromptCompleted: true });
       router.push("/");
     } catch (err) {
-      if (!redirectIfSessionExpired(err, router, pathname)) {
-        setError(err instanceof Error ? err.message : "Could not save photos");
-      }
+      handleSaveError(err, "Could not save photos");
     } finally {
       setSaving(false);
     }

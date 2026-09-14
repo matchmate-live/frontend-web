@@ -4,6 +4,7 @@ import Script from "next/script";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ProfileCompletionGate from "@/components/profile/ProfileCompletionGate";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { ToastProvider } from "@/lib/toast/ToastProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -97,10 +98,12 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         ) : null}
-        <AuthProvider>
-          <ProfileCompletionGate>{children}</ProfileCompletionGate>
-        </AuthProvider>
-        <SiteFooter />
+        <ToastProvider>
+          <AuthProvider>
+            <ProfileCompletionGate>{children}</ProfileCompletionGate>
+          </AuthProvider>
+          <SiteFooter />
+        </ToastProvider>
       </body>
     </html>
   );

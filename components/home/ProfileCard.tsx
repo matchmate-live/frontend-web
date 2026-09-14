@@ -10,6 +10,7 @@ import { SearchProfile } from "@/lib/search";
 import { titleCase } from "@/lib/location";
 import MessagesIcon from "@/icons/messages.svg";
 import UserRoundIcon from "@/icons/user-round.svg";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -66,7 +67,7 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
       : "Status: —";
 
   return (
-    <article className="w-full overflow-hidden rounded-xl border border-pink-200 bg-white shadow-sm sm:p-4">
+    <article className="w-full rounded-xl border border-pink-200 bg-white shadow-sm sm:p-4">
       <div className="flex w-full min-w-0 flex-col sm:flex-row sm:items-stretch sm:gap-4">
         {/* object-contain = full photo visible; letterboxing uses bg (no cropping like object-cover). */}
         <div className="relative mx-auto flex aspect-[5/4] w-full max-w-full min-w-0 shrink-0 items-center justify-center overflow-hidden bg-pink-50/90 sm:mx-0 sm:aspect-auto sm:h-28 sm:max-w-[7rem] sm:w-28 sm:rounded-lg">
@@ -83,7 +84,10 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
         <div className="flex min-w-0 flex-1 flex-col gap-3 px-4 pb-4 pt-3 sm:min-h-28 sm:justify-between sm:gap-4 sm:p-0 sm:pt-0">
           <div className="flex flex-col gap-1 sm:gap-1.5">
             <div className="flex min-w-0 items-start justify-between gap-3">
-              <h3 className="min-w-0 truncate text-lg font-semibold leading-snug text-zinc-900">{name}</h3>
+              <h3 className="flex min-w-0 items-center gap-1.5 text-lg font-semibold leading-snug text-zinc-900">
+                <span className="min-w-0 truncate">{name}</span>
+                {profile.emailVerified ? <VerifiedBadge className="shrink-0" /> : null}
+              </h3>
               {profile.age != null ? (
                 <span className="shrink-0 text-lg font-semibold tabular-nums text-zinc-800">{profile.age}</span>
               ) : (

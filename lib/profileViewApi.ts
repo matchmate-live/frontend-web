@@ -1,6 +1,6 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 import type { ProfileResponse } from "@/lib/onboarding/types";
-import { ApiError, throwApiError } from "@/lib/api/clientError";
+import { throwApiError } from "@/lib/api/clientError";
 
 const PROFILE_VIEW_STRIP_KEYS = [
   "phone",
@@ -17,17 +17,20 @@ function stripProfileViewFields(profile: ProfileResponse): ProfileResponse {
   return out as ProfileResponse;
 }
 
-async function authHeader(): Promise<HeadersInit> {
+/**
+ * Attaches a bearer token when a session exists; returns empty headers otherwise. This
+ * route is public — an anonymous visitor gets the redacted public view, not a 401 — so
+ * unlike other API helpers in this app, having no token here is not an error.
+ */
+async function optionalAuthHeader(): Promise<HeadersInit> {
   const session = await fetchAuthSession();
   const token = session.tokens?.idToken?.toString();
-  if (!token) {
-    throw new ApiError(401, "Not signed in");
-  }
-  return { Authorization: `Bearer ${token}` };
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 /**
- * Loads another member's profile (or your own) for /profile/[userId].
+ * Loads another member's profile (or your own) for /profile/[userId]. Works for signed-out
+ * visitors too — the backend route has no authorizer and returns the redacted public view.
  * Relies on Cache-Control from the API route for HTTP caching.
  * Pass `signal` from an AbortController so React Strict Mode / navigation can cancel the request.
  */
@@ -35,7 +38,7 @@ export async function fetchProfileByUserId(
   userId: string,
   options?: { signal?: AbortSignal },
 ): Promise<ProfileResponse> {
-  const headers = await authHeader();
+  const headers = await optionalAuthHeader();
   const res = await fetch(`/api/profiles/${encodeURIComponent(userId)}`, {
     headers,
     signal: options?.signal,
