@@ -1,6 +1,6 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 import type { ProfileResponse } from "@/lib/onboarding/types";
-import { throwApiError } from "@/lib/api/clientError";
+import { ApiError, throwApiError } from "@/lib/api/clientError";
 
 const PROFILE_VIEW_STRIP_KEYS = [
   "phone",
@@ -21,7 +21,7 @@ async function authHeader(): Promise<HeadersInit> {
   const session = await fetchAuthSession();
   const token = session.tokens?.idToken?.toString();
   if (!token) {
-    throw new Error("Not signed in");
+    throw new ApiError(401, "Not signed in");
   }
   return { Authorization: `Bearer ${token}` };
 }

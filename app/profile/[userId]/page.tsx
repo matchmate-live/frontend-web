@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
@@ -10,6 +10,7 @@ import AdRail from "@/components/home/AdRail";
 import AdSlot from "@/components/ads/AdSlot";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { redirectIfSessionExpired } from "@/lib/api/authRedirect";
 import { fetchProfileByUserId } from "@/lib/profileViewApi";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import type { ProfileResponse } from "@/lib/onboarding/types";
@@ -42,6 +43,8 @@ export default function PublicProfilePage() {
   const params = useParams();
   const userIdRaw = params?.userId;
   const userId = typeof userIdRaw === "string" ? userIdRaw : Array.isArray(userIdRaw) ? userIdRaw[0] : "";
+  const router = useRouter();
+  const pathname = usePathname();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const { isLoggedIn, signOut } = useAuth();
@@ -51,8 +54,12 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     if (!userId?.trim()) {
-      setLoading(false);
-      setError("Missing profile id.");
+      // Deferred to a microtask, not called synchronously in the effect body — same
+      // reasoning as AuthProvider's equivalent case: avoids a same-tick cascading render.
+      Promise.resolve().then(() => {
+        setLoading(false);
+        setError("Missing profile id.");
+      });
       return;
     }
 
@@ -66,14 +73,19 @@ export default function PublicProfilePage() {
       })
       .catch((e: unknown) => {
         if (ac.signal.aborted) return;
-        setError(e instanceof Error ? e.message : "Could not load profile.");
+        // Most common cause here is an anonymous visitor, not an expired session —
+        // "required" gets an accurate "please sign in to continue" instead of implying
+        // they had a session at all.
+        if (!redirectIfSessionExpired(e, router, pathname, "required")) {
+          setError(e instanceof Error ? e.message : "Could not load profile.");
+        }
       })
       .finally(() => {
         if (!ac.signal.aborted) setLoading(false);
       });
 
     return () => ac.abort();
-  }, [userId]);
+  }, [userId, router, pathname]);
 
   const name = profile?.name?.trim() || "Member";
   const photoSrc = profilePhotoSrc(profile?.photos?.[0]);
@@ -127,7 +139,7 @@ export default function PublicProfilePage() {
                 <div className="relative w-full shrink-0 bg-pink-50/50">
                   <div className="relative mx-auto aspect-[4/5] w-full max-w-2xl sm:aspect-[16/10] sm:max-w-none lg:aspect-[21/9] lg:max-h-[min(42vh,520px)]">
                     <Image
-                      alt=""
+                      alt={`${name}'s photo`}
                       className="object-contain object-center"
                       fill
                       priority

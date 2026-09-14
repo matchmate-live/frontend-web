@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { FilterState } from "@/lib/search";
 import { titleCase } from "@/lib/location";
+import { useModalA11y } from "@/hooks/useModalA11y";
 
 type CountryOption = {
   value: string;
@@ -19,6 +21,40 @@ type FilterDialogProps = {
   onApply: () => void;
 };
 
+/**
+ * Raw text the user is typing, separate from the committed numeric value — otherwise
+ * clearing the field to type a new number snaps straight back to the default on every
+ * keystroke, since Number("") is 0 and `0 || fallback` treats that the same as empty.
+ * Re-syncs from `committedValue` only when `open` flips true (dialog reopened), not on
+ * every parent update caused by this hook's own `onCommit` calls.
+ */
+function useAgeFieldText(committedValue: number, open: boolean, fallback: number, onCommit: (value: number) => void) {
+  const [text, setText] = useState(String(committedValue));
+
+  useEffect(() => {
+    if (open) setText(String(committedValue));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    setText(value);
+    const parsed = Number(value);
+    if (value.trim() !== "" && Number.isFinite(parsed)) {
+      onCommit(parsed);
+    }
+  }
+
+  function onBlur() {
+    const parsed = Number(text);
+    const value = text.trim() !== "" && Number.isFinite(parsed) ? parsed : fallback;
+    setText(String(value));
+    onCommit(value);
+  }
+
+  return { text, onChange, onBlur };
+}
+
 export default function FilterDialog({
   open,
   draftFilters,
@@ -28,12 +64,28 @@ export default function FilterDialog({
   onDraftChange,
   onApply,
 }: FilterDialogProps) {
+  const minAgeField = useAgeFieldText(draftFilters.minAge, open, 18, (minAge) =>
+    onDraftChange({ ...draftFilters, minAge }),
+  );
+  const maxAgeField = useAgeFieldText(draftFilters.maxAge, open, 40, (maxAge) =>
+    onDraftChange({ ...draftFilters, maxAge }),
+  );
+  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/25 p-4">
-      <div className="mx-auto mt-14 w-full max-w-md rounded-xl border border-pink-200 bg-white p-4 shadow-lg">
-        <h3 className="text-lg font-semibold text-zinc-900">Filters</h3>
+      <div
+        ref={dialogRef}
+        aria-labelledby="filter-dialog-title"
+        aria-modal="true"
+        className="mx-auto mt-14 w-full max-w-md rounded-xl border border-pink-200 bg-white p-4 shadow-lg"
+        role="dialog"
+      >
+        <h3 className="text-lg font-semibold text-zinc-900" id="filter-dialog-title">
+          Filters
+        </h3>
 
         <label className="mt-4 block text-sm text-zinc-700">Min age</label>
         <input
@@ -41,10 +93,9 @@ export default function FilterDialog({
           max={draftFilters.maxAge}
           min={18}
           type="number"
-          value={draftFilters.minAge}
-          onChange={(e) =>
-            onDraftChange({ ...draftFilters, minAge: Number(e.target.value) || 18 })
-          }
+          value={minAgeField.text}
+          onChange={minAgeField.onChange}
+          onBlur={minAgeField.onBlur}
         />
 
         <label className="mt-3 block text-sm text-zinc-700">Max age</label>
@@ -53,10 +104,9 @@ export default function FilterDialog({
           max={100}
           min={draftFilters.minAge}
           type="number"
-          value={draftFilters.maxAge}
-          onChange={(e) =>
-            onDraftChange({ ...draftFilters, maxAge: Number(e.target.value) || 40 })
-          }
+          value={maxAgeField.text}
+          onChange={maxAgeField.onChange}
+          onBlur={maxAgeField.onBlur}
         />
 
         <label className="mt-3 block text-sm text-zinc-700">Country</label>
