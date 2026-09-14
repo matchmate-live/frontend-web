@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Logo from "@/icons/logo.svg";
+import SiteLogo from "@/components/layout/SiteLogo";
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
@@ -9,10 +9,7 @@ export default function SiteFooter() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
         <div className="grid gap-6 md:grid-cols-3">
           <section>
-            <Link className="flex items-center gap-2 text-lg font-semibold text-pink-300" href="/">
-              <Logo className="h-6 w-6 shrink-0" aria-hidden />
-              MatchMate.live
-            </Link>
+            <SiteLogo className="flex text-lg" href="/" iconClassName="h-6 w-6" />
             <p className="mt-2 text-sm text-zinc-700">
               MatchMate.live is a free dating and matrimonial platform designed to help people find meaningful,
               long-term connections and serious marriage prospects.

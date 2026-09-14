@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import Logo from "@/icons/logo.svg";
+import SiteLogo from "@/components/layout/SiteLogo";
 
 type HomeNavbarProps = {
   menuOpen: boolean;
@@ -12,10 +11,7 @@ export default function HomeNavbar({ menuOpen, onToggleMenu }: HomeNavbarProps) 
   return (
     <nav className="w-full border-b border-pink-200 bg-white">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link className="flex items-center gap-2 text-xl font-semibold text-pink-300" href="/">
-          <Logo className="h-7 w-7 shrink-0" aria-hidden />
-          MatchMate.live
-        </Link>
+        <SiteLogo className="flex text-xl" href="/" iconClassName="h-7 w-7" />
 
         <button
           aria-controls="mobile-nav-drawer"

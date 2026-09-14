@@ -1,12 +1,14 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 import type { ProfileResponse } from "./types";
-import { throwApiError } from "@/lib/api/clientError";
+import { ApiError, throwApiError } from "@/lib/api/clientError";
 
 async function authHeader(): Promise<HeadersInit> {
   const session = await fetchAuthSession();
   const token = session.tokens?.idToken?.toString();
   if (!token) {
-    throw new Error("Not signed in");
+    // Same shape as a backend 401 (see lib/api/authRedirect.ts) — callers can treat
+    // "no local token" and "backend rejected the token" identically.
+    throw new ApiError(401, "Your session has expired. Please sign in again.");
   }
   return { Authorization: `Bearer ${token}` };
 }

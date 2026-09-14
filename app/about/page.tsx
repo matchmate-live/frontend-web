@@ -5,9 +5,12 @@ import AdRail from "@/components/home/AdRail";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 
 export const metadata: Metadata = {
-  title: "About MatchMate.live",
+  title: "About",
   description:
     "Learn about MatchMate.live — a modern dating and matrimonial platform built for meaningful connections with privacy-first discovery and messaging.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutPage() {
