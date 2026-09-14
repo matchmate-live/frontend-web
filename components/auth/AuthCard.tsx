@@ -23,7 +23,6 @@ import {
   fetchMyProfile,
   getPostAuthRedirectPath,
   isSafeRelativeAppPath,
-  postSignupBootstrap,
   withOnboardingQuery,
 } from "@/lib/onboarding";
 
@@ -240,29 +239,18 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
     setError("");
     setBusy(true);
     try {
-      const result = await signUp({
+      await signUp({
         username: email,
         password,
         options: {
           userAttributes: { email, phone_number: normalizedPhone },
         },
       });
-      const userSub = result.userId;
-      if (userSub) {
-        const boot = await postSignupBootstrap({
-          userSub,
-          email,
-          phone: normalizedPhone,
-        });
-        if (!boot.ok) {
-          setError(boot.message);
-          setBusy(false);
-          return;
-        }
-      }
       // No confirmation step: the account is auto-confirmed server-side (see
-      // backend preSignUpAutoConfirm) — sign in immediately rather than making
-      // the user re-enter their password on a separate screen.
+      // backend preSignUpAutoConfirm), and the initial profile row is created by
+      // a Cognito Post Confirmation trigger (postConfirmationBootstrap) — sign in
+      // immediately rather than making the user re-enter their password on a
+      // separate screen or wait on a client-driven bootstrap call.
       const signInResult = await signIn({ username: email, password });
       if (signInResult.nextStep.signInStep === "DONE") {
         await redirectAfterAuth(router, nextHref);

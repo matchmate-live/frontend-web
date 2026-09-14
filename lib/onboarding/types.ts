@@ -30,9 +30,3 @@ export type OnboardingProfileFieldErrors = Partial<{
   gender: string;
   genderPreference: string;
 }>;
-
-export type BootstrapSignupBody = {
-  userSub: string;
-  email: string;
-  phone: string;
-};
