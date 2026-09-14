@@ -1,14 +1,16 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 import type { ProfileResponse } from "./types";
-import { ApiError, throwApiError } from "@/lib/api/clientError";
+import { throwApiError, throwSessionExpiredError } from "@/lib/api/clientError";
 
 async function authHeader(): Promise<HeadersInit> {
   const session = await fetchAuthSession();
   const token = session.tokens?.idToken?.toString();
   if (!token) {
-    // Same shape as a backend 401 (see lib/api/authRedirect.ts) — callers can treat
-    // "no local token" and "backend rejected the token" identically.
-    throw new ApiError(401, "Your session has expired. Please sign in again.");
+    // Same shape as a backend 401 — callers can treat "no local token" and "backend
+    // rejected the token" identically. Routes through the same single notification path
+    // as a real 401 response (see clientError.ts), so this alone triggers the
+    // session-expired toast — no call site needs to know or care that this check happened.
+    return throwSessionExpiredError();
   }
   return { Authorization: `Bearer ${token}` };
 }
