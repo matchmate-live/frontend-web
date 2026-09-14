@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSubFromBearerAuth } from "@/lib/api/jwtSub";
 import { serverEnv } from "@/lib/api/serverEnv";
 import { forwardJsonResponse } from "@/lib/api/proxy";
 
@@ -17,6 +16,8 @@ function upstreamHeaders(request: NextRequest) {
 /**
  * GET profile by id (same upstream as /profiles/me, path is explicit member id).
  * Used when opening /profile/[userId] from search; forwards Cache-Control for browser caching.
+ * Public: the backend route itself has no authorizer and resolves an optional viewer
+ * identity, same as /search — an anonymous visitor gets the redacted public view, not 401.
  */
 export async function GET(
   request: NextRequest,
@@ -25,11 +26,6 @@ export async function GET(
   const apiBaseUrl = serverEnv("API_BASE_URL");
   if (!apiBaseUrl) {
     return NextResponse.json({ message: "Server is missing API_BASE_URL." }, { status: 500 });
-  }
-
-  const auth = request.headers.get("authorization");
-  if (!getSubFromBearerAuth(auth)) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   const { userId } = await context.params;

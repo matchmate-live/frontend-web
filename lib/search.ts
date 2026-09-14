@@ -9,6 +9,7 @@ export type SearchProfile = {
   age?: number;
   gender?: string;
   photos?: string[];
+  emailVerified?: boolean;
   /** Epoch ms; used for status (online vs last seen). */
   lastSeen?: number;
   /** `country#city#gender` — search may return from GSI. */

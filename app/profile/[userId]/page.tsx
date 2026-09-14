@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
@@ -10,12 +10,14 @@ import AdRail from "@/components/home/AdRail";
 import AdSlot from "@/components/ads/AdSlot";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { redirectIfSessionExpired } from "@/lib/api/authRedirect";
+import { isSessionExpiredError } from "@/lib/api/authRedirect";
 import { fetchProfileByUserId } from "@/lib/profileViewApi";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import type { ProfileResponse } from "@/lib/onboarding/types";
 import { formatLastSeenStatus } from "@/lib/profileSearchDisplay";
 import { titleCase } from "@/lib/location";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import UserRoundIcon from "@/icons/user-round.svg";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -43,8 +45,6 @@ export default function PublicProfilePage() {
   const params = useParams();
   const userIdRaw = params?.userId;
   const userId = typeof userIdRaw === "string" ? userIdRaw : Array.isArray(userIdRaw) ? userIdRaw[0] : "";
-  const router = useRouter();
-  const pathname = usePathname();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const { isLoggedIn, signOut } = useAuth();
@@ -53,6 +53,9 @@ export default function PublicProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Public page: anyone can view a profile, signed in or not (the backend returns a
+    // redacted public view for anonymous/other viewers). Only "Send message" below is
+    // gated on isLoggedIn.
     if (!userId?.trim()) {
       // Deferred to a microtask, not called synchronously in the effect body — same
       // reasoning as AuthProvider's equivalent case: avoids a same-tick cascading render.
@@ -73,10 +76,10 @@ export default function PublicProfilePage() {
       })
       .catch((e: unknown) => {
         if (ac.signal.aborted) return;
-        // Most common cause here is an anonymous visitor, not an expired session —
-        // "required" gets an accurate "please sign in to continue" instead of implying
-        // they had a session at all.
-        if (!redirectIfSessionExpired(e, router, pathname, "required")) {
+        // Never redirects — this page never navigates a visitor away on its own. A real
+        // 401 already triggered the session-expired toast (see clientError.ts); this just
+        // needs to skip the redundant inline error for that one case.
+        if (!isSessionExpiredError(e)) {
           setError(e instanceof Error ? e.message : "Could not load profile.");
         }
       })
@@ -85,7 +88,7 @@ export default function PublicProfilePage() {
       });
 
     return () => ac.abort();
-  }, [userId, router, pathname]);
+  }, [userId]);
 
   const name = profile?.name?.trim() || "Member";
   const photoSrc = profilePhotoSrc(profile?.photos?.[0]);
@@ -129,9 +132,21 @@ export default function PublicProfilePage() {
             )}
 
             {error && !loading && (
-              <p className="flex flex-1 items-center justify-center px-4 py-16 text-sm text-red-700" role="alert">
-                {error}
-              </p>
+              <div className="flex flex-1 items-center justify-center px-4 py-16">
+                <div className="w-full max-w-md rounded-2xl border border-pink-200 bg-white p-6 text-center shadow-sm">
+                  <UserRoundIcon aria-hidden className="mx-auto h-10 w-10 text-pink-300" />
+                  <h2 className="mt-3 text-lg font-semibold text-zinc-900">Profile unavailable</h2>
+                  <p className="mt-2 text-sm text-zinc-600" role="alert">
+                    {error}
+                  </p>
+                  <Link
+                    className="mt-6 inline-flex items-center justify-center rounded-md bg-pink-300 px-4 py-2 text-sm font-medium text-white"
+                    href="/"
+                  >
+                    Back to search
+                  </Link>
+                </div>
+              </div>
             )}
 
             {!loading && !error && profile && (
@@ -152,7 +167,10 @@ export default function PublicProfilePage() {
                 <div className="flex flex-1 flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-pink-100 pb-6">
                     <div>
-                      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">{name}</h1>
+                      <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+                        {name}
+                        {profile ? <VerifiedBadge iconClassName="h-8 w-8" /> : null}
+                      </h1>
                       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700">
                         <span className="font-medium text-zinc-800">{displayGender(profile)}</span>
                         <span className="text-zinc-600">{displayCityCountry(profile)}</span>
@@ -185,12 +203,21 @@ export default function PublicProfilePage() {
                   ) : null}
 
                   <div className="mt-auto border-t border-pink-100 pt-8">
-                    <Link
-                      className="inline-flex w-full items-center justify-center rounded-lg bg-pink-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-pink-700 sm:w-auto sm:min-w-[200px]"
-                      href={`/messages?to=${encodeURIComponent(userId)}`}
-                    >
-                      Send message
-                    </Link>
+                    {isLoggedIn ? (
+                      <Link
+                        className="inline-flex w-full items-center justify-center rounded-lg bg-pink-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-pink-700 sm:w-auto sm:min-w-[200px]"
+                        href={`/messages?to=${encodeURIComponent(userId)}`}
+                      >
+                        Send message
+                      </Link>
+                    ) : (
+                      <Link
+                        className="inline-flex w-full items-center justify-center rounded-lg bg-pink-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-pink-700 sm:w-auto sm:min-w-[200px]"
+                        href={`/auth/sign-in?next=${encodeURIComponent(`/messages?to=${userId}`)}`}
+                      >
+                        Sign in to send a message
+                      </Link>
+                    )}
                   </div>
                 </div>
               </>

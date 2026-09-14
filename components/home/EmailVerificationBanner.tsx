@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { confirmEmailVerificationCode, fetchMyProfile, requestEmailVerificationCode } from "@/lib/onboarding";
 import { validateConfirmationCode } from "@/lib/authValidation";
-import { redirectIfSessionExpired } from "@/lib/api/authRedirect";
+import { isSessionExpiredError } from "@/lib/api/authRedirect";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -17,8 +16,6 @@ const RESEND_COOLDOWN_SECONDS = 60;
  * verification happens here instead, whenever the user chooses to.
  */
 export default function EmailVerificationBanner() {
-  const router = useRouter();
-  const pathname = usePathname();
   const { isLoggedIn, loading: authLoading } = useAuth();
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [justVerified, setJustVerified] = useState(false);
@@ -66,6 +63,14 @@ export default function EmailVerificationBanner() {
     }, 1000);
   }
 
+  // A real 401 already triggered the session-expired toast (see clientError.ts); this
+  // just needs to skip the redundant inline error for that one case.
+  function handleAuthError(err: unknown, fallbackMessage: string) {
+    if (!isSessionExpiredError(err)) {
+      setError(err instanceof Error ? err.message : fallbackMessage);
+    }
+  }
+
   async function handleSendCode() {
     setError("");
     setSending(true);
@@ -74,9 +79,7 @@ export default function EmailVerificationBanner() {
       setCodeSent(true);
       startCooldown();
     } catch (err) {
-      if (!redirectIfSessionExpired(err, router, pathname)) {
-        setError(err instanceof Error ? err.message : "Could not send a code. Try again.");
-      }
+      handleAuthError(err, "Could not send a code. Try again.");
     } finally {
       setSending(false);
     }
@@ -98,9 +101,7 @@ export default function EmailVerificationBanner() {
       setJustVerified(true);
       setTimeout(() => setJustVerified(false), 4000);
     } catch (confirmErr) {
-      if (!redirectIfSessionExpired(confirmErr, router, pathname)) {
-        setError(confirmErr instanceof Error ? confirmErr.message : "Incorrect code. Try again.");
-      }
+      handleAuthError(confirmErr, "Incorrect code. Try again.");
     } finally {
       setConfirming(false);
     }
