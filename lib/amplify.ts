@@ -47,3 +47,24 @@ export function configureAmplifyAuth() {
   configured = true;
   return true;
 }
+
+/**
+ * Clears Amplify's persisted auth state (tokens + OAuth-in-flight bookkeeping under
+ * `CognitoIdentityServiceProvider.<clientId>.*`, per TokenStore.mjs — no public API for
+ * this). Needed because a stuck `signInWithRedirect` leaves the "in-flight" flag set,
+ * which blocks every later `fetchAuthSession()` until cleared — a reload alone won't fix
+ * it since this is persisted storage, not in-memory state.
+ */
+export function resetAmplifyAuthState(): void {
+  const prefixes = ["CognitoIdentityServiceProvider", "amplify-signin-with-hostedUI"];
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    const toRemove: string[] = [];
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key && prefixes.some((p) => key.startsWith(p))) {
+        toRemove.push(key);
+      }
+    }
+    for (const key of toRemove) storage.removeItem(key);
+  }
+}

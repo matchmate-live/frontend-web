@@ -47,18 +47,17 @@ export default function PublicProfilePage() {
   const userId = typeof userIdRaw === "string" ? userIdRaw : Array.isArray(userIdRaw) ? userIdRaw[0] : "";
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isLoggedIn, signOut } = useAuth();
+  const { isLoggedIn, userId: ownUserId, signOut } = useAuth();
+  const isOwnProfile = ownUserId !== null && ownUserId === userId;
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Public page: anyone can view a profile, signed in or not (the backend returns a
-    // redacted public view for anonymous/other viewers). Only "Send message" below is
-    // gated on isLoggedIn.
+    // redacted view for anonymous/other viewers). Only "Send message" is gated on isLoggedIn.
     if (!userId?.trim()) {
-      // Deferred to a microtask, not called synchronously in the effect body — same
-      // reasoning as AuthProvider's equivalent case: avoids a same-tick cascading render.
+      // Deferred to a microtask — avoids a same-tick cascading render (same as AuthProvider).
       Promise.resolve().then(() => {
         setLoading(false);
         setError("Missing profile id.");
@@ -76,9 +75,8 @@ export default function PublicProfilePage() {
       })
       .catch((e: unknown) => {
         if (ac.signal.aborted) return;
-        // Never redirects — this page never navigates a visitor away on its own. A real
-        // 401 already triggered the session-expired toast (see clientError.ts); this just
-        // needs to skip the redundant inline error for that one case.
+        // Never redirects on its own. A real 401 already triggered the session-expired
+        // toast (see clientError.ts); this just skips the redundant inline error.
         if (!isSessionExpiredError(e)) {
           setError(e instanceof Error ? e.message : "Could not load profile.");
         }
@@ -151,7 +149,7 @@ export default function PublicProfilePage() {
 
             {!loading && !error && profile && (
               <>
-                <div className="relative w-full shrink-0 bg-pink-50/50">
+                <div className="relative w-full shrink-0 bg-pink-50/50 px-4 sm:px-8">
                   <div className="relative mx-auto aspect-[4/5] w-full max-w-2xl sm:aspect-[16/10] sm:max-w-none lg:aspect-[21/9] lg:max-h-[min(42vh,520px)]">
                     <Image
                       alt={`${name}'s photo`}
@@ -202,23 +200,25 @@ export default function PublicProfilePage() {
                     </div>
                   ) : null}
 
-                  <div className="mt-auto border-t border-pink-100 pt-8">
-                    {isLoggedIn ? (
-                      <Link
-                        className="inline-flex w-full items-center justify-center rounded-lg bg-pink-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-pink-700 sm:w-auto sm:min-w-[200px]"
-                        href={`/messages?to=${encodeURIComponent(userId)}`}
-                      >
-                        Send message
-                      </Link>
-                    ) : (
-                      <Link
-                        className="inline-flex w-full items-center justify-center rounded-lg bg-pink-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-pink-700 sm:w-auto sm:min-w-[200px]"
-                        href={`/auth/sign-in?next=${encodeURIComponent(`/messages?to=${userId}`)}`}
-                      >
-                        Sign in to send a message
-                      </Link>
-                    )}
-                  </div>
+                  {!isOwnProfile ? (
+                    <div className="mt-auto border-t border-pink-100 pt-8">
+                      {isLoggedIn ? (
+                        <Link
+                          className="inline-flex w-full items-center justify-center rounded-lg bg-pink-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-pink-700 sm:w-auto sm:min-w-[200px]"
+                          href={`/messages?to=${encodeURIComponent(userId)}`}
+                        >
+                          Send message
+                        </Link>
+                      ) : (
+                        <Link
+                          className="inline-flex w-full items-center justify-center rounded-lg bg-pink-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-pink-700 sm:w-auto sm:min-w-[200px]"
+                          href={`/auth/sign-in?next=${encodeURIComponent(`/messages?to=${userId}`)}`}
+                        >
+                          Sign in to send a message
+                        </Link>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               </>
             )}

@@ -246,11 +246,9 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
           userAttributes: { email, phone_number: normalizedPhone },
         },
       });
-      // No confirmation step: the account is auto-confirmed server-side (see
-      // backend preSignUpAutoConfirm), and the initial profile row is created by
-      // a Cognito Post Confirmation trigger (postConfirmationBootstrap) — sign in
-      // immediately rather than making the user re-enter their password on a
-      // separate screen or wait on a client-driven bootstrap call.
+      // No confirmation step: the account is auto-confirmed server-side, and the initial
+      // profile row is created by a Cognito Post Confirmation trigger — sign in
+      // immediately rather than a separate confirm screen.
       const signInResult = await signIn({ username: email, password });
       if (signInResult.nextStep.signInStep === "DONE") {
         await redirectAfterAuth(router, nextHref);

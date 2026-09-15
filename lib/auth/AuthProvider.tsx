@@ -10,6 +10,9 @@ type AuthContextValue = {
   /** True once the initial check has resolved (either way) — false only during that first check. */
   loading: boolean;
   isLoggedIn: boolean;
+  /** Cognito sub of the signed-in user, or null when signed out. Use this (not a separate
+   *  getCurrentUser() call) anywhere "is this my own profile/conversation/etc." matters. */
+  userId: string | null;
   /** Re-runs the check now. Rarely needed — sign-in/out anywhere already updates every consumer via Hub. */
   refresh: () => void;
   signOut: () => Promise<void>;
@@ -25,19 +28,20 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const check = useCallback(() => {
-    // configureAmplifyAuth() itself never touches React state; if it fails (env missing),
-    // getCurrentUser() below simply rejects and the .catch() below reports "not logged in" —
-    // no separate synchronous branch needed.
+    // If this fails (env missing), getCurrentUser() below just rejects into "not logged in".
     configureAmplifyAuth();
     getCurrentUser()
-      .then(() => {
+      .then((u) => {
         setIsLoggedIn(true);
+        setUserId(u.userId);
         markHadSession(true);
       })
       .catch(() => {
         setIsLoggedIn(false);
+        setUserId(null);
         markHadSession(false);
       })
       .finally(() => setLoading(false));
@@ -59,12 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     await amplifySignOut();
     setIsLoggedIn(false);
+    setUserId(null);
     markHadSession(false);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ loading, isLoggedIn, refresh: check, signOut }),
-    [loading, isLoggedIn, check, signOut],
+    () => ({ loading, isLoggedIn, userId, refresh: check, signOut }),
+    [loading, isLoggedIn, userId, check, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
