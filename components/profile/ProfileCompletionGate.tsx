@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import {
-  fetchMyProfile,
+  fetchMyProfileCached,
   getPostAuthRedirectPath,
   shouldSkipProfileGate,
   withOnboardingQuery,
@@ -21,12 +21,17 @@ export default function ProfileCompletionGate({ children }: { children: React.Re
     if (loading) return; // wait for the shared auth check to resolve
     if (!isLoggedIn) return; // anonymous visitor — nothing to gate
     if (shouldSkipProfileGate(pathname)) return;
+    // On the search screen, search params only appear after a search already ran this
+    // session — so their presence means the profile was already checked; skip re-checking
+    // on every return trip to "/". Reads window.location directly, not useSearchParams(),
+    // since this wraps every route and shouldn't force a Suspense boundary app-wide.
+    if (pathname === "/" && typeof window !== "undefined" && window.location.search) return;
 
     let cancelled = false;
 
     (async () => {
       try {
-        const profile = await fetchMyProfile();
+        const profile = await fetchMyProfileCached();
         if (cancelled) return;
         const next = getPostAuthRedirectPath(profile);
         if (next !== "/") {

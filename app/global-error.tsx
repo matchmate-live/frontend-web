@@ -5,10 +5,8 @@ import "./globals.css";
 
 /**
  * Last-resort fallback — only renders if the root layout itself throws (error.tsx can't
- * catch that; it doesn't wrap the layout/template above it in the same segment). Must
- * define its own <html>/<body> since it replaces the root layout entirely. Deliberately
- * skips the Google Fonts import the root layout uses, to keep this page's own dependency
- * surface as small as possible — globals.css's plain CSS still gives a clean baseline.
+ * catch that). Must define its own <html>/<body> since it replaces the root layout
+ * entirely; deliberately skips the Google Fonts import to keep its dependency surface small.
  */
 export default function GlobalError({
   error,

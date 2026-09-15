@@ -76,10 +76,8 @@ export default function OnboardingPhotosForm() {
     };
   }, [router]);
 
-  // Revoke any preview URLs still outstanding if the form unmounts before submit. The ref
-  // is intentionally read at cleanup time (not captured at effect setup), since it's a
-  // stable, in-place-mutated Set used only to track live object URLs — we want whatever is
-  // actually outstanding at unmount, not a snapshot from when the effect first ran.
+  // Revoke any preview URLs still outstanding if the form unmounts before submit — read at
+  // cleanup time, not captured at setup, to catch whatever's actually outstanding then.
   useEffect(() => {
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,10 +162,9 @@ export default function OnboardingPhotosForm() {
         uploadedKeys.push(key);
       }
 
-      // Explicit, because the backend only auto-derives this flag on the one call where
-      // onboardingStatus first becomes "complete" — by the time this form runs, that already
-      // happened during the profile step, so this call needs to say so itself or the user
-      // gets bounced back here forever (see getPostAuthRedirectPath).
+      // Explicit — the backend only auto-derives this flag on the call where
+      // onboardingStatus first becomes "complete" (already happened in the profile step),
+      // so this call must say so itself or the user gets bounced back here forever.
       await updateMyProfile({ photos: uploadedKeys, onboardingPhotosPromptCompleted: true });
       router.push("/");
     } catch (err) {

@@ -2,18 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { confirmEmailVerificationCode, fetchMyProfile, requestEmailVerificationCode } from "@/lib/onboarding";
+import {
+  confirmEmailVerificationCode,
+  fetchMyProfileCached,
+  getCachedProfileIfFresh,
+  requestEmailVerificationCode,
+  setMyProfileCache,
+} from "@/lib/onboarding";
 import { validateConfirmationCode } from "@/lib/authValidation";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
- * Nudges a logged-in user with an unverified email to verify it, and handles the whole
- * request-code / enter-code flow inline. Renders nothing for anonymous visitors or once
- * verified. This app verifies email itself via SES rather than Cognito's own built-in
- * flow (see backend docs/authentication.md) — sign-up no longer blocks on a code, so
- * verification happens here instead, whenever the user chooses to.
+ * Nudges a logged-in user with an unverified email, handling the request/confirm-code
+ * flow inline. Renders nothing for anonymous or already-verified visitors. Verifies via
+ * SES, not Cognito's built-in flow (see backend docs/authentication.md).
  */
 export default function EmailVerificationBanner() {
   const { isLoggedIn, loading: authLoading } = useAuth();
@@ -30,8 +34,11 @@ export default function EmailVerificationBanner() {
 
   useEffect(() => {
     if (authLoading || !isLoggedIn) return;
+    // Once the search screen's URL already has filter params, this isn't a fresh landing —
+    // skip re-checking on every return trip to "/".
+    if (typeof window !== "undefined" && window.location.search) return;
     let cancelled = false;
-    fetchMyProfile()
+    fetchMyProfileCached()
       .then((profile) => {
         if (!cancelled) setEmailVerified(profile?.emailVerified === true);
       })
@@ -100,6 +107,11 @@ export default function EmailVerificationBanner() {
       setEmailVerified(true);
       setJustVerified(true);
       setTimeout(() => setJustVerified(false), 4000);
+      // This changed emailVerified via a different endpoint than updateMyProfile, so the
+      // shared cache wouldn't otherwise learn about it — patch it in directly rather than
+      // leaving other readers of fetchMyProfileCached() stale for the rest of the TTL.
+      const cached = getCachedProfileIfFresh();
+      if (cached) setMyProfileCache({ ...cached, emailVerified: true });
     } catch (confirmErr) {
       handleAuthError(confirmErr, "Incorrect code. Try again.");
     } finally {

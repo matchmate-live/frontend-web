@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import {
   formatLastSeenStatus,
@@ -55,6 +58,8 @@ function displayCityCountry(profile: SearchProfile): string {
 }
 
 export default function ProfileCard({ profile, priority = false }: ProfileCardProps) {
+  const { userId: ownUserId } = useAuth();
+  const isOwnProfile = ownUserId !== null && ownUserId === profile.userId;
   const name = profile.name?.trim() || "Member";
   const photoSrc = profilePhotoSrc(profile.photos?.[0]);
   const genderLabel = displayGender(profile);
@@ -106,13 +111,15 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
               {statusLine}
             </p>
             <div className="flex w-full min-w-0 gap-2 sm:w-auto sm:flex-wrap sm:justify-end">
-              <Link
-                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-pink-200 bg-white px-2.5 py-2 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-pink-300 hover:bg-pink-50/80 sm:flex-initial sm:justify-start sm:py-1.5 sm:text-sm"
-                href={`/messages?to=${encodeURIComponent(profile.userId)}`}
-              >
-                <MessagesIcon className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
-                Send message
-              </Link>
+              {!isOwnProfile ? (
+                <Link
+                  className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-pink-200 bg-white px-2.5 py-2 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-pink-300 hover:bg-pink-50/80 sm:flex-initial sm:justify-start sm:py-1.5 sm:text-sm"
+                  href={`/messages?to=${encodeURIComponent(profile.userId)}`}
+                >
+                  <MessagesIcon className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
+                  Send message
+                </Link>
+              ) : null}
               <Link
                 className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-pink-200 bg-white px-2.5 py-2 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-pink-300 hover:bg-pink-50/80 sm:flex-initial sm:justify-start sm:py-1.5 sm:text-sm"
                 href={`/profile/${encodeURIComponent(profile.userId)}`}

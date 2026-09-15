@@ -36,12 +36,16 @@ async function optionalAuthHeader(): Promise<HeadersInit> {
  */
 export async function fetchProfileByUserId(
   userId: string,
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal; noStore?: boolean },
 ): Promise<ProfileResponse> {
   const headers = await optionalAuthHeader();
   const res = await fetch(`/api/profiles/${encodeURIComponent(userId)}`, {
     headers,
     signal: options?.signal,
+    // This route replies with a 3h Cache-Control for the normal browse/profile-page case,
+    // which is right for name/photos/bio but wrong for a caller that specifically wants a
+    // fresh online/last-seen status — opt out of the browser HTTP cache for that caller.
+    cache: options?.noStore ? "no-store" : undefined,
   });
   if (!res.ok) {
     await throwApiError(res);

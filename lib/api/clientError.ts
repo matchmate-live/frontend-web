@@ -3,12 +3,9 @@ import { hadSession, markHadSession } from "@/lib/auth/sessionFlag";
 type ApiErrorBody = { message?: string };
 
 /**
- * Extracts a user-safe message from a failed fetch `Response`. Every MatchMate
- * API route / backend endpoint replies with `{ message }` on error and never
- * leaks internal detail on 5xx (backend/src/utils/http.js `createErrorResponse`,
- * relayed as-is by lib/api/proxy.ts `forwardJsonResponse`) — this just needs to
- * survive a non-JSON body (e.g. a raw gateway error page) and fill in a sane
- * default when the field is missing.
+ * Extracts a user-safe message from a failed fetch `Response`. Every route replies with
+ * `{ message }` and never leaks internals on 5xx (backend `createErrorResponse`, relayed
+ * as-is by proxy.ts) — this just survives a non-JSON body and fills in a default.
  */
 export async function readApiErrorMessage(
   res: Response,
@@ -22,11 +19,10 @@ export async function readApiErrorMessage(
 export class ApiError extends Error {
   status: number;
   /**
-   * True only if this specific error actually triggered the session-expired toast.
-   * NOT the same as `status === 401` — an anonymous visitor's 401 never does (see
-   * `notifyIfSessionExpired` below). Call sites check this, not raw status, to decide
-   * whether to suppress their own inline error: if it's false, nothing told the visitor
-   * anything, and they need their normal error handling (or a 404 page, etc.), not silence.
+   * True only if this error actually triggered the session-expired toast — not the same
+   * as `status === 401` (an anonymous visitor's 401 never does; see
+   * `notifyIfSessionExpired`). Call sites check this, not raw status, before suppressing
+   * their own inline error.
    */
   sessionExpiredNotified: boolean;
   constructor(status: number, message: string) {
@@ -41,22 +37,18 @@ type SessionExpiredListener = () => void;
 let sessionExpiredListener: SessionExpiredListener | null = null;
 
 /**
- * Registered exactly once, by `ToastProvider` on mount — not for general use elsewhere.
- * This is the single place that decides "show the session-expired toast": every 401
- * anywhere in the app funnels through `throwApiError` or `throwSessionExpiredError`
- * below, so there's exactly one trigger point instead of each call site re-implementing
- * "is this a real 401" and remembering to notify on it.
+ * Registered once, by `ToastProvider` on mount. Every 401 app-wide funnels through
+ * `throwApiError`/`throwSessionExpiredError` below — one trigger point, not each call
+ * site reimplementing "is this a real 401".
  */
 export function setSessionExpiredListener(listener: SessionExpiredListener | null): void {
   sessionExpiredListener = listener;
 }
 
 /**
- * A 401 alone does not mean "your session expired" — an anonymous visitor hitting a
- * route that requires auth also gets a 401, and was never signed in to begin with. Only
- * notify when `hadSession()` says this browser actually had a confirmed login (set by
- * AuthProvider — see sessionFlag.ts), and consume it immediately so a burst of requests
- * failing together after the real expiry only shows the toast once, not once per request.
+ * A 401 alone doesn't mean "session expired" — an anonymous visitor hitting an
+ * auth-required route also gets one. Only notify when `hadSession()` confirms a real
+ * prior login, and consume it immediately so a burst of failing requests toasts once.
  */
 function notifyIfSessionExpired(err: ApiError): void {
   if (err.status !== 401) return;
@@ -73,11 +65,8 @@ export async function throwApiError(res: Response, fallback?: string): Promise<n
   throw err;
 }
 
-/**
- * For call sites that determine "no session" locally (e.g. no token available at all)
- * rather than from an actual failed Response — still funnels through the same single
- * notification path as a real backend 401, so callers never call `showToast` themselves.
- */
+/** For call sites that detect "no session" locally (no token at all), not from a failed
+ * Response — still funnels through the same notification path as a real 401. */
 export function throwSessionExpiredError(
   message = "Your session has expired. Please sign in again.",
 ): never {

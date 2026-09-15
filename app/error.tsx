@@ -7,12 +7,10 @@ import MobileDrawer from "@/components/home/MobileDrawer";
 import { useAuth } from "@/lib/auth/AuthProvider";
 
 /**
- * Root error boundary — catches uncaught rendering errors anywhere under the root layout
- * (it does not cover the root layout itself; see global-error.tsx for that). Renders inside
- * the root layout's {children} slot, so it's still nested in AuthProvider/ProfileCompletionGate
- * — useAuth() is safe here, unlike in global-error.tsx. `unstable_retry` is this Next.js
- * version's recommended recovery function (added in 16.2.0), replacing the older `reset`
- * prop for the common case of "try re-rendering this segment."
+ * Root error boundary — catches uncaught rendering errors under the root layout (not the
+ * layout itself; see global-error.tsx). Still nested in AuthProvider, so useAuth() is safe
+ * here unlike in global-error.tsx. `unstable_retry` is Next 16.2's recovery function,
+ * replacing the older `reset` prop.
  */
 export default function ErrorPage({
   error,
