@@ -10,13 +10,6 @@ type SiteLogoProps = {
   href?: string;
 };
 
-/**
- * The icon SVG's artwork isn't visually centered top-to-bottom relative to the row it sits
- * in next to the text, and that's imperceptible to fix via the SVG's own viewBox at this
- * render size (a few % of a ~24-28px box rounds to under a pixel) — a real CSS nudge here
- * is the part that's actually visible.
- */
-
 export default function SiteLogo({ iconClassName = "h-6 w-6", className = "", href }: SiteLogoProps) {
   const content = (
     <>

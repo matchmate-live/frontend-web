@@ -13,10 +13,9 @@ type AdSlotProps = {
   className: string;
   /**
    * Fixed pixel size (e.g. a 250x600 skyscraper). Omit for a responsive "auto"-format ad
-   * that sizes to its container — but note AdSense's auto/responsive format will forcibly
-   * override ancestor height/min-height with inline !important styles if its chosen ad
-   * creative doesn't match the space given to it (see AdRail, which needs a fixed size
-   * specifically to stop that from happening to the sticky sidebar layout).
+   * — but AdSense's auto format will forcibly override ancestor height/min-height with
+   * inline !important styles if the chosen creative doesn't fit (see AdRail, which needs
+   * a fixed size to avoid that in a sticky sidebar).
    */
   size?: { width: number; height: number };
 };
@@ -30,14 +29,10 @@ export default function AdSlot({ slot, className, size }: AdSlotProps) {
     const el = wrapperRef.current;
     if (!el) return;
 
-    // Mobile and desktop ad slots are both mounted at once (Tailwind's lg:hidden /
-    // hidden lg:block only toggle CSS display, not the DOM), so whichever one is hidden
-    // for the current viewport has width 0 — pushing then throws "No slot size for
-    // availableWidth=0". A synchronous offsetWidth read inside this effect isn't reliable
-    // here since React's commit phase isn't guaranteed to run after the browser has
-    // finished layout (CSS can still be settling, particularly in dev). ResizeObserver's
-    // callback is spec-guaranteed to fire only once layout is actually computed, so it's
-    // used for the very first measurement too, not just later visibility changes.
+    // Mobile/desktop slots are both mounted at once (Tailwind only toggles CSS display),
+    // so the hidden one has width 0 — pushing then throws "No slot size for
+    // availableWidth=0". A synchronous offsetWidth read here isn't reliable since layout
+    // may still be settling; ResizeObserver only fires once layout is actually computed.
     let pushed = false;
     const observer = new ResizeObserver(() => {
       if (pushed || el.offsetWidth <= 0) return;
@@ -59,12 +54,9 @@ export default function AdSlot({ slot, className, size }: AdSlotProps) {
   }
 
   return (
-    // No data-full-width-responsive: that flag makes AdSense deliberately size the ad to the
-    // full device viewport width (via a negative margin + explicit width), breaking out of
-    // whatever padded container it's in — by design, not a bug. Plain data-ad-format="auto"
-    // (only used when no fixed `size` is given) sizes responsively to this element's own
-    // container instead. The overflow-hidden wrapper stays as a safety net for anything
-    // AdSense still oversizes.
+    // No data-full-width-responsive: that flag sizes the ad to the full viewport width
+    // (by design), breaking out of its container. Plain data-ad-format="auto" sizes to
+    // this element's own container instead; overflow-hidden is a safety net either way.
     <div ref={wrapperRef} className="w-full max-w-full overflow-hidden">
       <ins
         className={`adsbygoogle ${className}`}

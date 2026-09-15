@@ -1,19 +1,7 @@
-import { fetchAuthSession } from "aws-amplify/auth";
 import type { ProfileResponse } from "./types";
-import { throwApiError, throwSessionExpiredError } from "@/lib/api/clientError";
-
-async function authHeader(): Promise<HeadersInit> {
-  const session = await fetchAuthSession();
-  const token = session.tokens?.idToken?.toString();
-  if (!token) {
-    // Same shape as a backend 401 — callers can treat "no local token" and "backend
-    // rejected the token" identically. Routes through the same single notification path
-    // as a real 401 response (see clientError.ts), so this alone triggers the
-    // session-expired toast — no call site needs to know or care that this check happened.
-    return throwSessionExpiredError();
-  }
-  return { Authorization: `Bearer ${token}` };
-}
+import { throwApiError } from "@/lib/api/clientError";
+import { authHeader } from "@/lib/api/authHeader";
+import { getCachedProfileIfFresh, setMyProfileCache } from "./myProfileCache";
 
 export async function fetchMyProfile(): Promise<ProfileResponse | null> {
   const headers = await authHeader();
@@ -36,6 +24,32 @@ export async function fetchMyProfile(): Promise<ProfileResponse | null> {
   return res.json() as Promise<ProfileResponse>;
 }
 
+let fetchMyProfileInFlight: Promise<ProfileResponse | null> | null = null;
+
+/**
+ * Cached wrapper around fetchMyProfile (see myProfileCache.ts) — "my profile" rarely
+ * changes session to session, so re-fetching it on every caller is wasted cost. An
+ * in-flight request is shared across simultaneous callers. updateMyProfile below seeds the
+ * cache with each write's result, so this tab's own edits are never served stale.
+ */
+export async function fetchMyProfileCached(options?: { forceRefresh?: boolean }): Promise<ProfileResponse | null> {
+  if (!options?.forceRefresh) {
+    const cached = getCachedProfileIfFresh();
+    if (cached) return cached;
+  }
+  if (!fetchMyProfileInFlight) {
+    fetchMyProfileInFlight = fetchMyProfile()
+      .then((profile) => {
+        if (profile) setMyProfileCache(profile);
+        return profile;
+      })
+      .finally(() => {
+        fetchMyProfileInFlight = null;
+      });
+  }
+  return fetchMyProfileInFlight;
+}
+
 export async function updateMyProfile(body: Record<string, unknown>): Promise<ProfileResponse> {
   const headers = await authHeader();
   const res = await fetch("/api/profiles/me", {
@@ -47,7 +61,9 @@ export async function updateMyProfile(body: Record<string, unknown>): Promise<Pr
   if (!res.ok) {
     await throwApiError(res);
   }
-  return res.json() as Promise<ProfileResponse>;
+  const profile = (await res.json()) as ProfileResponse;
+  setMyProfileCache(profile);
+  return profile;
 }
 
 export async function presignUpload(): Promise<{ uploadUrl: string; key: string }> {

@@ -4,3 +4,4 @@ export * from "./validation";
 export * from "./routing";
 export * from "./redirects";
 export * from "./profileApi";
+export * from "./myProfileCache";

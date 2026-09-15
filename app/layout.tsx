@@ -3,8 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ProfileCompletionGate from "@/components/profile/ProfileCompletionGate";
+import MessageNotifications from "@/components/messages/MessageNotifications";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { ToastProvider } from "@/lib/toast/ToastProvider";
+import { MessagingProvider } from "@/lib/messaging/MessagingProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -100,7 +102,10 @@ export default function RootLayout({
         ) : null}
         <ToastProvider>
           <AuthProvider>
-            <ProfileCompletionGate>{children}</ProfileCompletionGate>
+            <MessagingProvider>
+              <MessageNotifications />
+              <ProfileCompletionGate>{children}</ProfileCompletionGate>
+            </MessagingProvider>
           </AuthProvider>
           <SiteFooter />
         </ToastProvider>
