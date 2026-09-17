@@ -330,7 +330,6 @@ export default function HomeClient() {
 
   return (
     <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">
-      <h1 className="sr-only">Find matches near you on MatchMate.live</h1>
       <HomeNavbar
         menuOpen={menuOpen}
         onToggleMenu={() => setMenuOpen((value) => !value)}
@@ -347,6 +346,13 @@ export default function HomeClient() {
           <AdRail slot={ADS_SLOTS.desktopLeft} />
 
           <div>
+            <h1 className="text-xl font-semibold text-zinc-900 sm:text-2xl">
+              Find your match on MatchMate.live
+            </h1>
+            <p className="mt-1 text-sm text-zinc-600">
+              Browse real profiles for dating and matrimonial matches near you, filtered by country, city,
+              age, and gender — free to join, free to search.
+            </p>
             <EmailVerificationBanner />
             <FilterBar
               filters={filters}
