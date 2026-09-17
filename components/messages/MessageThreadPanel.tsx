@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import BackButton from "@/components/ui/BackButton";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import { formatLastSeenStatus } from "@/lib/profileSearchDisplay";
 import type { Message } from "@/lib/messaging/types";
@@ -109,15 +110,8 @@ export default function MessageThreadPanel({
 
   return (
     <div className={`${hidden ? "hidden" : "flex"} min-h-0 flex-1 flex-col`}>
-      <div className="flex items-center gap-3 border-b border-pink-100 px-4 py-3 sm:px-6">
-        <button
-          aria-label="Back to conversations"
-          className="cursor-pointer rounded-md p-1 text-zinc-600 hover:bg-pink-50"
-          type="button"
-          onClick={onBack}
-        >
-          ←
-        </button>
+      <div className="flex items-center gap-1 border-b border-pink-100 px-4 py-3 sm:gap-2 sm:px-6">
+        <BackButton onClick={onBack} />
         <Link className="flex min-w-0 items-center gap-3" href={`/profile/${encodeURIComponent(activeUserId)}`}>
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-pink-50/90">
             <Image alt={`${partnerName}'s photo`} className="object-cover" fill sizes="36px" src={profilePhotoSrc(partnerProfile?.photos?.[0])} />

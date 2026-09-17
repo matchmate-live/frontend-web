@@ -5,6 +5,7 @@ import AboutIcon from "@/icons/about.svg";
 import ContactIcon from "@/icons/contact.svg";
 import HomeIcon from "@/icons/home.svg";
 import MessagesIcon from "@/icons/messages.svg";
+import SettingsIcon from "@/icons/user-round.svg";
 import SiteLogo from "@/components/layout/SiteLogo";
 import { useModalA11y } from "@/hooks/useModalA11y";
 
@@ -79,6 +80,14 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
           >
             <MessagesIcon className="h-4 w-4 text-pink-300" />
             Messages
+          </Link>
+          <Link
+            className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
+            href="/settings"
+            onClick={onClose}
+          >
+            <SettingsIcon className="h-4 w-4 text-pink-300" />
+            Profile settings
           </Link>
           <Link
             className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"

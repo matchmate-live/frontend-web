@@ -22,4 +22,8 @@ export const ADS_SLOTS = {
   /** Profile page: two units — A = left rail + mobile top; B = right rail + mobile bottom. */
   profileA: process.env.NEXT_PUBLIC_ADSENSE_SLOT_PROFILE_A ?? "9999999971",
   profileB: process.env.NEXT_PUBLIC_ADSENSE_SLOT_PROFILE_B ?? "9999999972",
+  /** Settings page: same 3-slot mapping as home (desktop left/right rail + one mobile bottom slot). */
+  settingsDesktopLeft: process.env.NEXT_PUBLIC_ADSENSE_SLOT_DESKTOP_LEFT ?? "9999999961",
+  settingsDesktopRight: process.env.NEXT_PUBLIC_ADSENSE_SLOT_DESKTOP_RIGHT ?? "9999999962",
+  settingsMobileBottom: process.env.NEXT_PUBLIC_ADSENSE_SLOT_MOBILE_BOTTOM ?? "9999999963",
 } as const;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FilterState } from "@/lib/search";
 import { titleCase } from "@/lib/location";
 import { useModalA11y } from "@/hooks/useModalA11y";
+import SelectChevron from "@/components/ui/SelectChevron";
 
 type CountryOption = {
   value: string;
@@ -110,54 +111,63 @@ export default function FilterDialog({
         />
 
         <label className="mt-3 block text-sm text-zinc-700">Country</label>
-        <select
-          className="mt-1 w-full rounded-md border border-pink-200 p-2 text-sm"
-          value={draftFilters.country}
-          onChange={(e) =>
-            onDraftChange({
-              ...draftFilters,
-              country: e.target.value,
-              city: "",
-            })
-          }
-        >
-          <option value="">Select country</option>
-          {countries.map((country) => (
-            <option key={country.isoCode} value={country.value}>
-              {country.label}
-            </option>
-          ))}
-        </select>
+        <div className="relative mt-1">
+          <select
+            className="w-full appearance-none rounded-md border border-pink-200 py-2 pl-2 pr-9 text-sm"
+            value={draftFilters.country}
+            onChange={(e) =>
+              onDraftChange({
+                ...draftFilters,
+                country: e.target.value,
+                city: "",
+              })
+            }
+          >
+            <option value="">Select country</option>
+            {countries.map((country) => (
+              <option key={country.isoCode} value={country.value}>
+                {country.label}
+              </option>
+            ))}
+          </select>
+          <SelectChevron />
+        </div>
 
         <label className="mt-3 block text-sm text-zinc-700">City</label>
-        <select
-          className="mt-1 w-full rounded-md border border-pink-200 p-2 text-sm"
-          disabled={!draftFilters.country}
-          value={draftFilters.city}
-          onChange={(e) => onDraftChange({ ...draftFilters, city: e.target.value })}
-        >
-          <option value="">All cities</option>
-          {cityOptions.map((city) => (
-            <option key={city} value={city}>
-              {titleCase(city)}
-            </option>
-          ))}
-        </select>
+        <div className="relative mt-1">
+          <select
+            className="w-full appearance-none rounded-md border border-pink-200 py-2 pl-2 pr-9 text-sm"
+            disabled={!draftFilters.country}
+            value={draftFilters.city}
+            onChange={(e) => onDraftChange({ ...draftFilters, city: e.target.value })}
+          >
+            <option value="">All cities</option>
+            {cityOptions.map((city) => (
+              <option key={city} value={city}>
+                {titleCase(city)}
+              </option>
+            ))}
+          </select>
+          <SelectChevron />
+        </div>
 
         <label className="mt-3 block text-sm text-zinc-700">Gender</label>
-        <select
-          className="mt-1 w-full rounded-md border border-pink-200 p-2 text-sm"
-          value={draftFilters.gender}
-          onChange={(e) =>
-            onDraftChange({
-              ...draftFilters,
-              gender: e.target.value as "male" | "female",
-            })
-          }
-        >
-          <option value="female">Female</option>
-          <option value="male">Male</option>
-        </select>
+        <div className="relative mt-1">
+          <select
+            className="w-full appearance-none rounded-md border border-pink-200 py-2 pl-2 pr-9 text-sm"
+            value={draftFilters.gender}
+            onChange={(e) =>
+              onDraftChange({
+                ...draftFilters,
+                gender: e.target.value as "male" | "female",
+              })
+            }
+          >
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+          </select>
+          <SelectChevron />
+        </div>
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button className="rounded-md border border-pink-200 bg-white px-3 py-1.5 text-sm text-zinc-900" type="button" onClick={onClose}>
