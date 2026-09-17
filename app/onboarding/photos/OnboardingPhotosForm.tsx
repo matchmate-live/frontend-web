@@ -153,7 +153,10 @@ export default function OnboardingPhotosForm() {
         const { uploadUrl, key } = await presignUpload();
         const put = await fetch(uploadUrl, {
           method: "PUT",
-          headers: { "Content-Type": "image/jpeg" },
+          // Must match exactly what the presigned URL signed (see presignMedia's
+          // ServerSideEncryption: 'AES256') — S3 rejects the request with a signature
+          // mismatch otherwise, since this header is part of what was signed.
+          headers: { "Content-Type": "image/jpeg", "x-amz-server-side-encryption": "AES256" },
           body: jpeg,
         });
         if (!put.ok) {

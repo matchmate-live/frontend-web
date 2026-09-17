@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { configureAmplifyAuth } from "@/lib/amplify";
 import FloatingInput from "@/components/ui/FloatingInput";
 import HelpTooltipIcon from "@/components/ui/HelpTooltipIcon";
+import PasswordVisibilityToggle from "@/components/ui/PasswordVisibilityToggle";
 import AdSlot from "@/components/ads/AdSlot";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import SiteLogo from "@/components/layout/SiteLogo";
@@ -172,6 +173,8 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   async function handleGoogle() {
     if (!isConfigured) {
@@ -289,7 +292,7 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
             error={fieldErrors.password}
             label="Password"
             required
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onBlur={() =>
               setFieldErrors((prev) => ({
@@ -301,6 +304,9 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
               setPassword(value);
               setFieldErrors((prev) => ({ ...prev, password: undefined }));
             }}
+            endAdornment={
+              <PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
+            }
           />
           <button
             className="w-full cursor-pointer rounded-md bg-pink-300 p-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
@@ -364,24 +370,31 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
               <HelpTooltipIcon text="Your phone number is not shared with anyone. It is used for account records only." />
             }
           />
-          <FloatingInput
-            error={fieldErrors.password}
-            label="Password"
-            required
-            type="password"
-            value={password}
-            onBlur={() => setFieldErrors((prev) => ({ ...prev, password: validatePassword(password) }))}
-            onChange={(value) => {
-              setPassword(value);
-              setFieldErrors((prev) => ({ ...prev, password: undefined }));
-            }}
-            endAdornment={<HelpTooltipIcon text={PASSWORD_REQUIREMENTS_TEXT} />}
-          />
+          <div>
+            <FloatingInput
+              error={fieldErrors.password}
+              label="Password"
+              required
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onBlur={() => setFieldErrors((prev) => ({ ...prev, password: validatePassword(password) }))}
+              onChange={(value) => {
+                setPassword(value);
+                setFieldErrors((prev) => ({ ...prev, password: undefined }));
+              }}
+              endAdornment={
+                <PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
+              }
+            />
+            {!fieldErrors.password ? (
+              <p className="mt-1 text-xs leading-snug text-zinc-500">{PASSWORD_REQUIREMENTS_TEXT}</p>
+            ) : null}
+          </div>
           <FloatingInput
             error={fieldErrors.confirmPassword}
             label="Confirm password"
             required
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             value={confirmPassword}
             onBlur={() =>
               setFieldErrors((prev) => ({
@@ -393,6 +406,12 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
               setConfirmPassword(value);
               setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
             }}
+            endAdornment={
+              <PasswordVisibilityToggle
+                visible={showConfirmPassword}
+                onToggle={() => setShowConfirmPassword((v) => !v)}
+              />
+            }
           />
           <button
             className="w-full cursor-pointer rounded-md bg-pink-300 p-2 text-white disabled:cursor-not-allowed disabled:opacity-60"

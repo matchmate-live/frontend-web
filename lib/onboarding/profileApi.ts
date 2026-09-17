@@ -80,6 +80,20 @@ export async function presignUpload(): Promise<{ uploadUrl: string; key: string 
   return res.json() as Promise<{ uploadUrl: string; key: string }>;
 }
 
+/** Deletes one of the caller's own previously-uploaded photos from storage. */
+export async function deleteUploadedPhoto(key: string): Promise<void> {
+  const headers = await authHeader();
+  const res = await fetch("/api/media/delete", {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ key }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    await throwApiError(res);
+  }
+}
+
 /** Sends a 6-digit verification code to the caller's own registered email (via SES, not Cognito's). */
 export async function requestEmailVerificationCode(): Promise<void> {
   const headers = await authHeader();
