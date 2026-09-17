@@ -28,9 +28,6 @@ export default function SiteFooter() {
               <Link className="text-zinc-700 hover:text-pink-300" href="/contact">
                 Contact us
               </Link>
-              <Link className="text-zinc-700 hover:text-pink-300" href="/messages">
-                Messages
-              </Link>
               <Link className="text-zinc-700 hover:text-pink-300" href="/privacy">
                 Privacy Policy
               </Link>
