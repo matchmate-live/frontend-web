@@ -22,6 +22,34 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "account", label: "Account" },
 ];
 
+/** Same 3-column ad-rail layout as Home, shared by both the signed-out and signed-in
+ * views below — ads must show regardless of auth state, same as Home. */
+function SettingsAdLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mx-auto w-full max-w-7xl px-6 py-6">
+      <div className="grid items-stretch gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
+        <AdRail slot={ADS_SLOTS.settingsDesktopLeft} />
+
+        <div>
+          {children}
+
+          <div className="mt-6 lg:hidden">
+            <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
+              <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
+              <AdSlot
+                className="block min-h-[220px] w-full rounded-md bg-pink-50/50"
+                slot={ADS_SLOTS.settingsMobileBottom}
+              />
+            </div>
+          </div>
+        </div>
+
+        <AdRail slot={ADS_SLOTS.settingsDesktopRight} />
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsView() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isLoggedIn, loading: authLoading, signOut } = useAuth();
@@ -89,18 +117,20 @@ export default function SettingsView() {
       <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">
         <HomeNavbar menuOpen={menuOpen} onToggleMenu={() => setMenuOpen((v) => !v)} />
         <MobileDrawer isLoggedIn={false} open={menuOpen} onClose={() => setMenuOpen(false)} />
-        <div className="flex min-h-[60vh] items-center justify-center px-4 py-16">
-          <div className="w-full max-w-md rounded-2xl border border-pink-200 bg-white p-6 text-center shadow-sm">
-            <h1 className="text-lg font-semibold text-zinc-900">Sign in required</h1>
-            <p className="mt-2 text-sm text-zinc-600">You need to be signed in to view profile settings.</p>
-            <a
-              className="mt-4 inline-block rounded-md bg-pink-300 px-4 py-2 text-sm text-white"
-              href="/auth/sign-in?next=%2Fsettings"
-            >
-              Sign in
-            </a>
+        <SettingsAdLayout>
+          <div className="flex min-h-[50vh] items-center justify-center px-4 py-16">
+            <div className="w-full max-w-md rounded-2xl border border-pink-200 bg-white p-6 text-center shadow-sm">
+              <h1 className="text-lg font-semibold text-zinc-900">Sign in required</h1>
+              <p className="mt-2 text-sm text-zinc-600">You need to be signed in to view profile settings.</p>
+              <a
+                className="mt-4 inline-block rounded-md bg-pink-300 px-4 py-2 text-sm text-white"
+                href="/auth/sign-in?next=%2Fsettings"
+              >
+                Sign in
+              </a>
+            </div>
           </div>
-        </div>
+        </SettingsAdLayout>
       </main>
     );
   }
@@ -129,27 +159,7 @@ export default function SettingsView() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-6 py-6">
-        <div className="grid items-stretch gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
-          <AdRail slot={ADS_SLOTS.settingsDesktopLeft} />
-
-          <div>
-            {renderTabContent()}
-
-            <div className="mt-6 lg:hidden">
-              <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
-                <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-                <AdSlot
-                  className="block min-h-[220px] w-full rounded-md bg-pink-50/50"
-                  slot={ADS_SLOTS.settingsMobileBottom}
-                />
-              </div>
-            </div>
-          </div>
-
-          <AdRail slot={ADS_SLOTS.settingsDesktopRight} />
-        </div>
-      </div>
+      <SettingsAdLayout>{renderTabContent()}</SettingsAdLayout>
     </main>
   );
 }
