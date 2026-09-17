@@ -31,6 +31,12 @@ export default function SiteFooter() {
               <Link className="text-zinc-700 hover:text-pink-300" href="/messages">
                 Messages
               </Link>
+              <Link className="text-zinc-700 hover:text-pink-300" href="/privacy">
+                Privacy Policy
+              </Link>
+              <Link className="text-zinc-700 hover:text-pink-300" href="/terms">
+                Terms of Service
+              </Link>
             </nav>
           </section>
 
@@ -45,10 +51,16 @@ export default function SiteFooter() {
           </section>
         </div>
 
-        <div className="mt-6 border-t border-pink-100 pt-4 text-xs text-zinc-600">
-          <p>
-            © {year} MatchMate.live. All rights reserved.
-          </p>
+        <div className="mt-6 flex flex-col gap-2 border-t border-pink-100 pt-4 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {year} MatchMate.live. All rights reserved.</p>
+          <nav className="flex gap-4">
+            <Link className="hover:text-pink-300" href="/privacy">
+              Privacy Policy
+            </Link>
+            <Link className="hover:text-pink-300" href="/terms">
+              Terms of Service
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>
