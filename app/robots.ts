@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       // Auth-gated/per-user routes: no evergreen content to rank. Profiles stay
       // unindexed for the same privacy reasons other dating apps keep them out too.
-      disallow: ["/api/", "/messages", "/profile/", "/onboarding/", "/auth/callback"],
+      disallow: ["/api/", "/messages", "/profile/", "/onboarding/", "/auth/callback", "/settings"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

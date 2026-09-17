@@ -13,6 +13,7 @@ type FloatingInputProps = {
   startAdornment?: React.ReactNode;
   endAdornment?: React.ReactNode;
   error?: string;
+  disabled?: boolean;
 };
 
 export default function FloatingInput({
@@ -27,6 +28,7 @@ export default function FloatingInput({
   startAdornment,
   endAdornment,
   error,
+  disabled = false,
 }: FloatingInputProps) {
   const hasStart = Boolean(startAdornment);
   const hasEnd = Boolean(endAdornment);
@@ -37,9 +39,10 @@ export default function FloatingInput({
         <input
           className={`peer w-full rounded-md border ${
             error ? "border-red-500" : "border-zinc-700"
-          } bg-white pb-2 pt-5 text-zinc-900 outline-none transition focus:border-pink-400 ${
+          } ${disabled ? "cursor-not-allowed bg-zinc-50 text-zinc-500" : "bg-white text-zinc-900"} pb-2 pt-5 outline-none transition focus:border-pink-400 ${
             hasStart ? "pl-10" : "pl-3"
-          } ${hasEnd ? "pr-10" : "pr-3"}`}
+          } ${hasEnd ? "pr-14" : "pr-3"}`}
+          disabled={disabled}
           placeholder=" "
           required={required}
           type={type}
