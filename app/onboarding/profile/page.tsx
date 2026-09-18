@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "aws-amplify/auth";
 import FloatingInput from "@/components/ui/FloatingInput";
+import SelectChevron from "@/components/ui/SelectChevron";
 import { configureAmplifyAuth } from "@/lib/amplify";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
 import { getCountryOptions, getCityOptionsByCountry } from "@/lib/geoData";
@@ -199,96 +200,108 @@ export default function OnboardingProfilePage() {
           <label className="mb-1 block text-xs font-medium text-zinc-600" htmlFor="country">
             Country
           </label>
-          <select
-            className={`w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
-              fieldErrors.country ? "border-red-400" : "border-zinc-800"
-            }`}
-            id="country"
-            required
-            value={country}
-            onChange={(e) => {
-              setCountry(e.target.value);
-              setCity("");
-              setFieldErrors((prev) => ({ ...prev, country: undefined }));
-            }}
-          >
-            <option value="">Select country</option>
-            {countries.map((c) => (
-              <option key={c.isoCode} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              className={`w-full appearance-none rounded-lg border bg-white py-2.5 pl-3 pr-9 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
+                fieldErrors.country ? "border-red-400" : "border-zinc-800"
+              }`}
+              id="country"
+              required
+              value={country}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                setCity("");
+                setFieldErrors((prev) => ({ ...prev, country: undefined }));
+              }}
+            >
+              <option value="">Select country</option>
+              {countries.map((c) => (
+                <option key={c.isoCode} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <SelectChevron />
+          </div>
           {fieldErrors.country ? <p className="mt-1 text-xs text-red-600">{fieldErrors.country}</p> : null}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-zinc-600" htmlFor="city">
             City
           </label>
-          <select
-            className={`w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
-              fieldErrors.city ? "border-red-400" : "border-zinc-800"
-            }`}
-            disabled={!country}
-            id="city"
-            required
-            value={city}
-            onChange={(e) => {
-              setCity(e.target.value);
-              setFieldErrors((prev) => ({ ...prev, city: undefined }));
-            }}
-          >
-            <option value="">{country ? "Select city" : "Select country first"}</option>
-            {cities.map((c) => (
-              <option key={c} value={c}>
-                {titleCase(c)}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              className={`w-full appearance-none rounded-lg border bg-white py-2.5 pl-3 pr-9 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
+                fieldErrors.city ? "border-red-400" : "border-zinc-800"
+              }`}
+              disabled={!country}
+              id="city"
+              required
+              value={city}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setFieldErrors((prev) => ({ ...prev, city: undefined }));
+              }}
+            >
+              <option value="">{country ? "Select city" : "Select country first"}</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>
+                  {titleCase(c)}
+                </option>
+              ))}
+            </select>
+            <SelectChevron />
+          </div>
           {fieldErrors.city ? <p className="mt-1 text-xs text-red-600">{fieldErrors.city}</p> : null}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-zinc-600" htmlFor="gender">
             Your gender
           </label>
-          <select
-            className={`w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
-              fieldErrors.gender ? "border-red-400" : "border-zinc-800"
-            }`}
-            id="gender"
-            required
-            value={gender}
-            onChange={(e) => {
-              setGender(e.target.value as "male" | "female");
-              setFieldErrors((prev) => ({ ...prev, gender: undefined }));
-            }}
-          >
-            <option value="">Select</option>
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-          </select>
+          <div className="relative">
+            <select
+              className={`w-full appearance-none rounded-lg border bg-white py-2.5 pl-3 pr-9 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
+                fieldErrors.gender ? "border-red-400" : "border-zinc-800"
+              }`}
+              id="gender"
+              required
+              value={gender}
+              onChange={(e) => {
+                setGender(e.target.value as "male" | "female");
+                setFieldErrors((prev) => ({ ...prev, gender: undefined }));
+              }}
+            >
+              <option value="">Select</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+            <SelectChevron />
+          </div>
           {fieldErrors.gender ? <p className="mt-1 text-xs text-red-600">{fieldErrors.gender}</p> : null}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-zinc-600" htmlFor="pref">
             Interested in meeting
           </label>
-          <select
-            className={`w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
-              fieldErrors.genderPreference ? "border-red-400" : "border-zinc-800"
-            }`}
-            id="pref"
-            required
-            value={genderPreference}
-            onChange={(e) => {
-              setGenderPreference(e.target.value as "male" | "female");
-              setFieldErrors((prev) => ({ ...prev, genderPreference: undefined }));
-            }}
-          >
-            <option value="">Select</option>
-            <option value="female">Women</option>
-            <option value="male">Men</option>
-          </select>
+          <div className="relative">
+            <select
+              className={`w-full appearance-none rounded-lg border bg-white py-2.5 pl-3 pr-9 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
+                fieldErrors.genderPreference ? "border-red-400" : "border-zinc-800"
+              }`}
+              id="pref"
+              required
+              value={genderPreference}
+              onChange={(e) => {
+                setGenderPreference(e.target.value as "male" | "female");
+                setFieldErrors((prev) => ({ ...prev, genderPreference: undefined }));
+              }}
+            >
+              <option value="">Select</option>
+              <option value="female">Women</option>
+              <option value="male">Men</option>
+            </select>
+            <SelectChevron />
+          </div>
           {fieldErrors.genderPreference ? (
             <p className="mt-1 text-xs text-red-600">{fieldErrors.genderPreference}</p>
           ) : null}

@@ -1,23 +1,24 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import AdRail from "@/components/home/AdRail";
 import AdSlot from "@/components/ads/AdSlot";
+import BackButton from "@/components/ui/BackButton";
+import ErrorCard from "@/components/ui/ErrorCard";
+import ProfileDetailSkeleton from "@/components/profile/ProfileDetailSkeleton";
+import ProfilePhotoCarousel from "@/components/profile/ProfilePhotoCarousel";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
 import { fetchProfileByUserId } from "@/lib/profileViewApi";
-import { profilePhotoSrc } from "@/lib/profilePhoto";
 import type { ProfileResponse } from "@/lib/onboarding/types";
 import { formatLastSeenStatus } from "@/lib/profileSearchDisplay";
 import { titleCase } from "@/lib/location";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
-import UserRoundIcon from "@/icons/user-round.svg";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -52,6 +53,18 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  function handleBack() {
+    // history.length > 1 means there's actually somewhere to go back to (e.g. search
+    // results, messages, another profile) — falls back to "/" for a profile opened
+    // directly, such as from a shared link or a new tab.
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  }
 
   useEffect(() => {
     // Public page: anyone can view a profile, signed in or not (the backend returns a
@@ -89,7 +102,6 @@ export default function PublicProfilePage() {
   }, [userId]);
 
   const name = profile?.name?.trim() || "Member";
-  const photoSrc = profilePhotoSrc(profile?.photos?.[0]);
   const online = isRecentlyOnline(profile?.lastSeen);
 
   return (
@@ -118,49 +130,20 @@ export default function PublicProfilePage() {
           {/* Full-screen-style profile column (not a card) */}
           <div className="flex min-h-0 min-h-[calc(100dvh-3.5rem)] flex-1 flex-col bg-white lg:min-h-[calc(100vh-7rem)]">
             <div className="border-b border-pink-100 px-4 py-3 sm:px-6">
-              <Link className="text-sm font-medium text-pink-600 hover:text-pink-700" href="/">
-                ← Back to search
-              </Link>
+              <BackButton label="Back" onClick={handleBack} />
             </div>
 
-            {loading && (
-              <p className="flex flex-1 items-center justify-center px-4 py-16 text-sm text-zinc-600" role="status">
-                Loading profile…
-              </p>
-            )}
+            {loading && <ProfileDetailSkeleton />}
 
             {error && !loading && (
               <div className="flex flex-1 items-center justify-center px-4 py-16">
-                <div className="w-full max-w-md rounded-2xl border border-pink-200 bg-white p-6 text-center shadow-sm">
-                  <UserRoundIcon aria-hidden className="mx-auto h-10 w-10 text-pink-300" />
-                  <h2 className="mt-3 text-lg font-semibold text-zinc-900">Profile unavailable</h2>
-                  <p className="mt-2 text-sm text-zinc-600" role="alert">
-                    {error}
-                  </p>
-                  <Link
-                    className="mt-6 inline-flex items-center justify-center rounded-md bg-pink-300 px-4 py-2 text-sm font-medium text-white"
-                    href="/"
-                  >
-                    Back to search
-                  </Link>
-                </div>
+                <ErrorCard actionLabel="Go back" message={error} title="Profile unavailable" onAction={handleBack} />
               </div>
             )}
 
             {!loading && !error && profile && (
               <>
-                <div className="relative w-full shrink-0 bg-pink-50/50 px-4 sm:px-8">
-                  <div className="relative mx-auto aspect-[4/5] w-full max-w-2xl sm:aspect-[16/10] sm:max-w-none lg:aspect-[21/9] lg:max-h-[min(42vh,520px)]">
-                    <Image
-                      alt={`${name}'s photo`}
-                      className="object-contain object-center"
-                      fill
-                      priority
-                      sizes="(max-width: 1024px) 100vw, min(100vw - 560px, 896px)"
-                      src={photoSrc}
-                    />
-                  </div>
-                </div>
+                <ProfilePhotoCarousel name={name} photos={profile.photos} />
 
                 <div className="flex flex-1 flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-pink-100 pb-6">
