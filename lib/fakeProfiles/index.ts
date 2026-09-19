@@ -1,8 +1,12 @@
 import type { SearchProfile } from "@/lib/search";
-import fakeProfilesDataDev from "@/lib/fakeProfilesData.dev.json";
-import fakeProfilesDataProd from "@/lib/fakeProfilesData.prod.json";
+import { ageFromIsoDobUtc } from "@/lib/onboarding/validation";
+import fakeProfilesDataDev from "./data.dev.json";
+import fakeProfilesDataProd from "./data.prod.json";
 
-type FakeProfileTemplate = Omit<SearchProfile, "lastSeen">;
+// Stored as `dob`, not `age` — age is derived at read time (ageFromIsoDobUtc below), same
+// as real profiles, so it doesn't freeze at whatever value it was when the data was
+// generated and quietly go stale as real time passes.
+type FakeProfileTemplate = Omit<SearchProfile, "lastSeen" | "age"> & { dob: string };
 type CountryEntry = { male: FakeProfileTemplate[]; female: FakeProfileTemplate[] };
 
 // `next build` (any deployed environment) sets NODE_ENV=production; only `next dev` is
@@ -15,7 +19,7 @@ const DATA = (
 
 /**
  * Fixed filler profiles (3-10 per gender per country, varied per country rather than a
- * uniform count — from lib/fakeProfilesData.{dev,prod}.json, regenerate via
+ * uniform count — from lib/fakeProfiles/data.{dev,prod}.json, regenerate via
  * scripts/generateFakeProfiles.mjs, never computed at request time) shown alongside real
  * search results, always stamped as online right now.
  *
@@ -45,5 +49,10 @@ export function getMatchingFakeProfiles(
     : [];
   const result = selected.length > 0 ? selected : genderProfiles;
 
-  return result.map((profile) => ({ ...profile, lastSeen: Date.now() }));
+  return result.map(({ dob, ...profile }) => ({
+    ...profile,
+    age: ageFromIsoDobUtc(dob) ?? undefined,
+    lastSeen: Date.now(),
+    emailVerified: true,
+  }));
 }
