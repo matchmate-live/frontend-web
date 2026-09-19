@@ -14,6 +14,7 @@ import {
 } from "@/lib/search";
 import { guessCountryFromTimezone, reverseGeocode } from "@/lib/location";
 import { getCityOptionsByCountry, getCountryOptions } from "@/lib/geoData";
+import { fetchMyProfileCached } from "@/lib/onboarding";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
@@ -213,15 +214,33 @@ export default function HomeClient() {
     };
   }, []);
 
+  /** Only ever called from requestLocationAndSearch, which only runs for the very first,
+   * no-URL-params auto-search — filters.gender is still whatever the initial useState
+   * default was at that point, so it's always safe to resolve and override it here. */
+  async function resolveDefaultGender(): Promise<"male" | "female"> {
+    if (!isLoggedIn) return DEFAULT_ANON_GENDER;
+    try {
+      const profile = await fetchMyProfileCached();
+      if (profile?.genderPreference === "male" || profile?.genderPreference === "female") {
+        return profile.genderPreference;
+      }
+    } catch {
+      // fall through to the anonymous default
+    }
+    return DEFAULT_ANON_GENDER;
+  }
+
   async function requestLocationAndSearch() {
     setHasRequestedLocation(true);
     setLoading(true);
     setProfiles([]);
 
+    const gender = await resolveDefaultGender();
+
     if (!navigator.geolocation) {
       const guessedCountry = guessCountryFromTimezone();
       if (guessedCountry) {
-        await applyFilters({ ...filters, country: guessedCountry, city: "" });
+        await applyFilters({ ...filters, gender, country: guessedCountry, city: "" });
       } else {
         setProfiles([]);
         setLoading(false);
@@ -244,7 +263,7 @@ export default function HomeClient() {
           const cityOptionsForCountry = getCityOptionsByCountry(normalizedCountry);
           const validatedCity =
             normalizedCity && cityOptionsForCountry.includes(normalizedCity) ? normalizedCity : "";
-          await applyFilters({ ...filters, country: normalizedCountry, city: validatedCity });
+          await applyFilters({ ...filters, gender, country: normalizedCountry, city: validatedCity });
         } catch {
           setProfiles([]);
           setLoading(false);
@@ -257,7 +276,7 @@ export default function HomeClient() {
             throw new Error("Could not determine your location right now.");
           }
 
-          await applyFilters({ ...filters, country: guessedCountry, city: "" });
+          await applyFilters({ ...filters, gender, country: guessedCountry, city: "" });
         } catch {
           setProfiles([]);
           setLoading(false);

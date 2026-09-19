@@ -87,32 +87,41 @@ export default function MessagesView() {
   const activeConversationId =
     ownSub && activeUserId ? buildDmConversationId(ownSub, activeUserId) : null;
 
-  // Conversation list — loaded once per login; real-time pushes update it in place after that.
+  // Conversation list — the List and Thread are different screens (see ConversationListPanel/
+  // MessageThreadPanel's `hidden` props: one-at-a-time on every viewport, never side-by-side).
+  // A direct deep link into one thread (e.g. "Send message" from a profile card) should never
+  // load the List screen's own data — so this only fetches once the List screen is actually
+  // the one being shown (no activeUserId), whether that's on initial load with no `?to=`, or
+  // later when the user taps back. Loaded once per login after that; real-time pushes keep it
+  // current without needing to re-fetch. hasLoadedConversationsRef is set synchronously before
+  // the async call and never reset except on logout, so it also survives React Strict Mode's
+  // dev-only double-invocation without a `cancelled`-flag race (see the message-thread effect
+  // below for why a naive `cancelled` closure combined with a run-once guard can get this wrong).
+  const hasLoadedConversationsRef = useRef(false);
   useEffect(() => {
     if (!isLoggedIn) {
+      hasLoadedConversationsRef.current = false;
       setConversations([]);
       setConversationsLoading(false);
       return;
     }
-    let cancelled = false;
+    if (activeUserId) return;
+    if (hasLoadedConversationsRef.current) return;
+    hasLoadedConversationsRef.current = true;
     setConversationsLoading(true);
     setConversationsError(null);
     fetchConversations()
       .then((res) => {
-        if (cancelled) return;
         setConversations(res.items);
         setConversationsNextToken(res.nextToken);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setConversationsError(e instanceof Error ? e.message : "Could not load conversations.");
+        setConversationsError(e instanceof Error ? e.message : "Could not load conversations.");
       })
       .finally(() => {
-        if (!cancelled) setConversationsLoading(false);
+        setConversationsLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, activeUserId]);
 
   async function loadMoreConversations() {
     if (!conversationsNextToken || loadingMoreConversations) return;
@@ -129,33 +138,45 @@ export default function MessagesView() {
   }
 
   // Message thread for whichever conversation is active — resets and reloads on every switch.
+  // fetchingThreadRef survives React Strict Mode's dev-only double-invocation of this effect,
+  // so only one request actually gets sent per id. But that means a per-invocation `cancelled`
+  // closure (set true by Strict Mode's spurious cleanup between the two invocations) would
+  // wrongly discard the one real request's own result — there's no second invocation left to
+  // apply it. So instead: track the latest activeConversationId in a ref and compare against
+  // that when the request resolves — true staleness (switched to a different conversation
+  // before this one's fetch finished) still gets discarded correctly; Strict Mode's harmless
+  // remount (same id, nothing actually changed) does not.
+  const fetchingThreadRef = useRef<Set<string>>(new Set());
+  const latestConversationIdRef = useRef<string | null>(null);
   useEffect(() => {
+    latestConversationIdRef.current = activeConversationId;
     if (!activeConversationId) {
       setMessages([]);
       setMessagesNextToken(null);
       setMessagesError(null);
       return;
     }
-    let cancelled = false;
+    if (fetchingThreadRef.current.has(activeConversationId)) return;
+    fetchingThreadRef.current.add(activeConversationId);
     setMessages([]);
     setMessagesNextToken(null);
     setMessagesLoading(true);
     setMessagesError(null);
     fetchMessages(activeConversationId)
       .then((res) => {
-        if (cancelled) return;
+        if (latestConversationIdRef.current !== activeConversationId) return;
         setMessages(chronological(res.items));
         setMessagesNextToken(res.nextToken);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setMessagesError(e instanceof Error ? e.message : "Could not load messages.");
+        if (latestConversationIdRef.current === activeConversationId) {
+          setMessagesError(e instanceof Error ? e.message : "Could not load messages.");
+        }
       })
       .finally(() => {
-        if (!cancelled) setMessagesLoading(false);
+        if (latestConversationIdRef.current === activeConversationId) setMessagesLoading(false);
+        fetchingThreadRef.current.delete(activeConversationId);
       });
-    return () => {
-      cancelled = true;
-    };
   }, [activeConversationId]);
 
   async function loadOlderMessages() {
@@ -259,22 +280,29 @@ export default function MessagesView() {
   // The bulk fetch above caches a profile for up to 3h, so it can't reflect live status.
   // No ongoing polling while a thread stays open — just re-fetch on open, and only if the
   // last fetch for this partner (tracked in localStorage) was 5+ minutes ago.
+  // fetchingStatusRef guards against React Strict Mode's dev-only double-invocation firing
+  // this noStore (always-real-network) request twice — see fetchingThreadRef above for why
+  // a per-invocation `cancelled` closure would wrongly discard the one real request's own
+  // result instead (there's no second invocation left to apply it).
+  const fetchingStatusRef = useRef<Set<string>>(new Set());
+  const latestActiveUserIdRef = useRef<string | null>(null);
   useEffect(() => {
+    latestActiveUserIdRef.current = activeUserId;
     if (!activeUserId) return;
     if (Date.now() - getLastStatusFetch(activeUserId) < STATUS_REFRESH_MS) return;
+    if (fetchingStatusRef.current.has(activeUserId)) return;
+    fetchingStatusRef.current.add(activeUserId);
 
-    let cancelled = false;
     fetchProfileByUserId(activeUserId, { noStore: true })
       .then((profile) => {
-        if (cancelled) return;
+        if (latestActiveUserIdRef.current !== activeUserId) return;
         setLastStatusFetch(activeUserId, Date.now());
         setProfilesByUserId((prev) => ({ ...prev, [activeUserId]: profile }));
       })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
+      .catch(() => {})
+      .finally(() => {
+        fetchingStatusRef.current.delete(activeUserId);
+      });
   }, [activeUserId]);
 
   function selectConversation(otherUserId: string) {
