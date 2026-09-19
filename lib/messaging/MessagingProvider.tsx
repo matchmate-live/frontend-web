@@ -22,6 +22,11 @@ const MessagingContext = createContext<MessagingContextValue | null>(null);
 
 const RECONNECT_BASE_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 15000;
+/** How long the tab must stay hidden before we tear the socket down — long enough that a
+ * quick tab-switch or checking a notification doesn't thrash the connection, short enough
+ * that a genuinely backgrounded/idle tab isn't paying WebSocket connection-minutes (billed
+ * regardless of activity) for no reason. */
+const BACKGROUND_CLOSE_DELAY_MS = 60_000;
 
 function isIncomingPush(data: unknown): data is IncomingMessagePush {
   return !!data && typeof data === "object" && (data as { type?: unknown }).type === "message";
@@ -48,9 +53,13 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
   >([]);
   const reconnectAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // True only when *we* intentionally closed the socket (logout/unmount) — distinguishes
-  // that from a drop, which is the one case that should trigger a reconnect.
+  // True only when *we* intentionally closed the socket (logout/unmount/backgrounding) —
+  // distinguishes that from a drop, which is the one case that should trigger a reconnect.
   const closedByUsRef = useRef(false);
+  // Specifically "closed because the tab was hidden" — distinct from closedByUsRef so the
+  // visibility-restore handler knows to reconnect, while logout still never does.
+  const closedForBackgroundRef = useRef(false);
+  const backgroundTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // `connect` calls itself (to reconnect) from inside its own onclose handler — a ref
   // avoids referencing the `const connect` before its declaration finishes.
   const connectRef = useRef<() => void>(() => {});
@@ -140,6 +149,45 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       wsRef.current?.close();
       wsRef.current = null;
+    };
+  }, [authLoading, isLoggedIn, connect]);
+
+  // Pause the connection while the tab is genuinely backgrounded (not just a quick
+  // tab-switch) — WebSocket connection-minutes are billed regardless of activity, and a
+  // hidden tab can't act on an incoming push anyway. Resumes immediately on return.
+  useEffect(() => {
+    if (authLoading || !isLoggedIn) return;
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        if (backgroundTimerRef.current) return; // already scheduled
+        backgroundTimerRef.current = setTimeout(() => {
+          backgroundTimerRef.current = null;
+          if (!document.hidden) return; // came back before the timer fired
+          if (wsRef.current) {
+            closedByUsRef.current = true;
+            closedForBackgroundRef.current = true;
+            wsRef.current.close();
+            wsRef.current = null;
+          }
+        }, BACKGROUND_CLOSE_DELAY_MS);
+        return;
+      }
+
+      if (backgroundTimerRef.current) {
+        clearTimeout(backgroundTimerRef.current);
+        backgroundTimerRef.current = null;
+      }
+      if (closedForBackgroundRef.current) {
+        closedForBackgroundRef.current = false;
+        connect();
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (backgroundTimerRef.current) clearTimeout(backgroundTimerRef.current);
     };
   }, [authLoading, isLoggedIn, connect]);
 
