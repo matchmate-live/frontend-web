@@ -14,15 +14,17 @@ function isOnlineNow(profile: SearchProfile): boolean {
   );
 }
 
-/** Index right after the last online profile — scanning from the end so fakes land right
- * where the online block ends, wherever that is. No online profiles at all → falls through
- * to items.length (append at the very end, after the real offline profiles, not ahead of
- * them). Empty items → also items.length (0), so fakes become the only entries. */
-function insertionIndexAfterOnlineBlock(items: SearchProfile[]): number {
-  for (let i = items.length - 1; i >= 0; i--) {
-    if (isOnlineNow(items[i])) return i + 1;
+// Real online users, then fakes, then real offline users — fakes shouldn't outrank someone
+// actually online, but should outrank anyone who isn't, no matter how recently they were.
+function partitionByOnlineStatus(
+  items: SearchProfile[],
+): { online: SearchProfile[]; offline: SearchProfile[] } {
+  const online: SearchProfile[] = [];
+  const offline: SearchProfile[] = [];
+  for (const item of items) {
+    (isOnlineNow(item) ? online : offline).push(item);
   }
-  return items.length;
+  return { online, offline };
 }
 
 export async function GET(request: NextRequest) {
@@ -68,14 +70,10 @@ export async function GET(request: NextRequest) {
       params.get("city"),
       params.get("gender"),
     );
-    const insertAt = insertionIndexAfterOnlineBlock(payload.items);
+    const { online, offline } = partitionByOnlineStatus(payload.items);
     const augmented: SearchResponse = {
       ...payload,
-      items: [
-        ...payload.items.slice(0, insertAt),
-        ...fakeProfiles,
-        ...payload.items.slice(insertAt),
-      ],
+      items: [...online, ...fakeProfiles, ...offline],
       count: payload.count + fakeProfiles.length,
     };
     return NextResponse.json(augmented, { status: response.status });

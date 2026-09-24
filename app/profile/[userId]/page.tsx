@@ -150,7 +150,7 @@ export default function PublicProfilePage() {
                     <div>
                       <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
                         {name}
-                        {profile ? <VerifiedBadge iconClassName="h-8 w-8" /> : null}
+                        {profile?.emailVerified ? <VerifiedBadge iconClassName="h-8 w-8" /> : null}
                       </h1>
                       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700">
                         <span className="font-medium text-zinc-800">{displayGender(profile)}</span>
