@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ProfileCompletionGate from "@/components/profile/ProfileCompletionGate";
 import MessageNotifications from "@/components/messages/MessageNotifications";
@@ -109,6 +110,7 @@ export default function RootLayout({
           </AuthProvider>
           <SiteFooter />
         </ToastProvider>
+        <Analytics />
       </body>
     </html>
   );
