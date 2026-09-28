@@ -1,3 +1,14 @@
+import { findPhotoIssue, type PhotoIssue } from "@/lib/photoModeration";
+
+/** Completes "Photo N …" / "This photo …". Deliberately says nothing about scores or
+ * thresholds — that would just help someone tune a photo to slip under them. */
+const PHOTO_ISSUE_MESSAGES: Record<PhotoIssue, string> = {
+  explicit:
+    "appears to contain nudity or sexual content, which isn't allowed. Please remove it and choose another.",
+  suggestive:
+    "looks too revealing for a profile photo. Please choose one where you're more fully dressed.",
+};
+
 export const MAX_PROFILE_PHOTOS = 5;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 /** Longest-edge cap, in px, applied before upload. Profile photos are never displayed
@@ -44,4 +55,23 @@ export async function fileToJpegBlob(file: File): Promise<Blob> {
     throw new Error("Image is still larger than 5 MB after compression. Try a smaller photo.");
   }
   return blob;
+}
+
+/** Convert and moderation-check every photo up front, so a rejected photo is caught
+ * before any of the batch reaches S3 (no half-uploaded batches / orphaned objects).
+ * `precedingPhotoCount` is how many photos the UI shows before these (e.g. already-saved
+ * ones), so the error's "Photo N" matches the position the user actually sees. */
+export async function prepareProfilePhotos(files: File[], precedingPhotoCount = 0): Promise<Blob[]> {
+  const jpegs: Blob[] = [];
+  for (const [i, file] of files.entries()) {
+    const jpeg = await fileToJpegBlob(file);
+    const issue = await findPhotoIssue(jpeg);
+    if (issue) {
+      const which =
+        files.length + precedingPhotoCount > 1 ? `Photo ${precedingPhotoCount + i + 1}` : "This photo";
+      throw new Error(`${which} ${PHOTO_ISSUE_MESSAGES[issue]}`);
+    }
+    jpegs.push(jpeg);
+  }
+  return jpegs;
 }
