@@ -7,7 +7,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import SkipPhotosDialog from "@/components/onboarding/SkipPhotosDialog";
 import { configureAmplifyAuth } from "@/lib/amplify";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
-import { fileToJpegBlob, MAX_PROFILE_PHOTOS } from "@/lib/imageUpload";
+import { MAX_PROFILE_PHOTOS, prepareProfilePhotos } from "@/lib/imageUpload";
 import {
   fetchMyProfile,
   getRedirectFromPhotosStep,
@@ -147,9 +147,9 @@ export default function OnboardingPhotosForm() {
     setError("");
     try {
       // Upload happens here, at confirm time — nothing pending has touched S3 before this.
+      const jpegs = await prepareProfilePhotos(pendingPhotos.map((p) => p.file));
       const uploadedKeys: string[] = [];
-      for (const { file } of pendingPhotos) {
-        const jpeg = await fileToJpegBlob(file);
+      for (const jpeg of jpegs) {
         const { uploadUrl, key } = await presignUpload();
         const put = await fetch(uploadUrl, {
           method: "PUT",

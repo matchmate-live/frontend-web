@@ -7,7 +7,8 @@ import FloatingInput from "@/components/ui/FloatingInput";
 import SelectChevron from "@/components/ui/SelectChevron";
 import { configureAmplifyAuth } from "@/lib/amplify";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
-import { getCountryOptions, getCityOptionsByCountry } from "@/lib/geoData";
+import { useCityOptions } from "@/hooks/useCityOptions";
+import { getCountryOptions } from "@/lib/geoData";
 import { titleCase } from "@/lib/location";
 import {
   fetchMyProfile,
@@ -39,7 +40,7 @@ export default function OnboardingProfilePage() {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof OnboardingProfileInput, string>>>({});
 
   const countries = useMemo(() => getCountryOptions(), []);
-  const cities = useMemo(() => getCityOptionsByCountry(country), [country]);
+  const cities = useCityOptions(country);
   const dobBounds = useMemo(
     () => ({
       min: minIsoDobForMaxAgeUtc(MAX_PROFILE_AGE),
