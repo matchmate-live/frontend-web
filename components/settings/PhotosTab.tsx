@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
-import { fileToJpegBlob, MAX_PROFILE_PHOTOS } from "@/lib/imageUpload";
+import { MAX_PROFILE_PHOTOS, prepareProfilePhotos } from "@/lib/imageUpload";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import {
   deleteUploadedPhoto,
@@ -89,9 +89,13 @@ export default function PhotosTab({ profile, onSaved }: PhotosTabProps) {
     setSaved(false);
     const removedKeys = (profile?.photos ?? []).filter((k) => !existingPhotos.includes(k));
     try {
+      // Existing photos render before pending ones in the grid, so number after them.
+      const jpegs = await prepareProfilePhotos(
+        pendingPhotos.map((p) => p.file),
+        existingPhotos.length,
+      );
       const uploadedKeys: string[] = [];
-      for (const { file } of pendingPhotos) {
-        const jpeg = await fileToJpegBlob(file);
+      for (const jpeg of jpegs) {
         const { uploadUrl, key } = await presignUpload();
         const put = await fetch(uploadUrl, {
           method: "PUT",

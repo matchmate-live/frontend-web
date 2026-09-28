@@ -13,7 +13,8 @@ import {
   fetchProfilesByLocation,
 } from "@/lib/search";
 import { guessCountryFromTimezone, reverseGeocode } from "@/lib/location";
-import { getCityOptionsByCountry, getCountryOptions } from "@/lib/geoData";
+import { useCityOptions } from "@/hooks/useCityOptions";
+import { fetchCityOptions, getCountryOptions } from "@/lib/geoData";
 import { fetchMyProfileCached } from "@/lib/onboarding";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import HomeNavbar from "@/components/home/HomeNavbar";
@@ -82,10 +83,7 @@ export default function HomeClient() {
     gender: DEFAULT_ANON_GENDER,
   });
   const countries = useMemo(() => getCountryOptions(), []);
-  const cityOptions = useMemo(
-    () => getCityOptionsByCountry(draftFilters.country),
-    [draftFilters.country],
-  );
+  const cityOptions = useCityOptions(draftFilters.country);
 
   /**
    * Shared control flow for a fresh search and "load more": cancels any in-flight request
@@ -260,7 +258,7 @@ export default function HomeClient() {
           const normalizedCity = geo.city?.toLowerCase();
           // Only applied if it's actually one of this country's dropdown options —
           // reverse-geocoded names don't reliably match this dataset's own naming.
-          const cityOptionsForCountry = getCityOptionsByCountry(normalizedCountry);
+          const cityOptionsForCountry = await fetchCityOptions(normalizedCountry);
           const validatedCity =
             normalizedCity && cityOptionsForCountry.includes(normalizedCity) ? normalizedCity : "";
           await applyFilters({ ...filters, gender, country: normalizedCountry, city: validatedCity });
