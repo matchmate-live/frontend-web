@@ -4,6 +4,9 @@ export const MAX_PROFILE_AGE = 100;
 
 export const ONBOARDING_ROUTES = {
   profile: "/onboarding/profile",
+  /** Optional details (likes, height, …). Not tracked server-side: it sits between the two
+   * tracked steps, so a user who leaves mid-way simply resumes at photos. */
+  about: "/onboarding/about",
   photos: "/onboarding/photos",
 } as const;
 

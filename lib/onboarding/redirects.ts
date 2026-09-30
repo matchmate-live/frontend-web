@@ -16,6 +16,21 @@ export function getRedirectFromProfileStep(profile: ProfileResponse): string | n
 }
 
 /**
+ * If the user should leave the optional "about you" step, returns the path; otherwise `null`.
+ * It's only reachable between finishing the profile step and finishing the photos step —
+ * after onboarding, the same fields live in Settings → About me.
+ */
+export function getRedirectFromAboutStep(profile: ProfileResponse): string | null {
+  if (profile.onboardingStatus !== "complete") {
+    return ONBOARDING_ROUTES.profile;
+  }
+  if (profile.onboardingPhotosPromptCompleted !== false) {
+    return "/";
+  }
+  return null;
+}
+
+/**
  * If the user should leave the photos onboarding step, returns the path; otherwise `null`.
  */
 export function getRedirectFromPhotosStep(profile: ProfileResponse): string | null {

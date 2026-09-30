@@ -12,6 +12,10 @@ export type SearchProfile = {
   emailVerified?: boolean;
   /** Epoch ms; used for status (online vs last seen). */
   lastSeen?: number;
+  /** Who they're looking for — shown on the card; either age bound may be absent. */
+  genderPreference?: string;
+  seekingAgeMin?: number;
+  seekingAgeMax?: number;
   /** `country#city#gender` — search may return from GSI. */
   locationGender?: string;
   /** `country#gender` — search may return from GSI. */
