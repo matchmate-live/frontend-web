@@ -213,19 +213,27 @@ export default function HomeClient() {
   }, []);
 
   /** Only ever called from requestLocationAndSearch, which only runs for the very first,
-   * no-URL-params auto-search — filters.gender is still whatever the initial useState
-   * default was at that point, so it's always safe to resolve and override it here. */
-  async function resolveDefaultGender(): Promise<"male" | "female"> {
-    if (!isLoggedIn) return DEFAULT_ANON_GENDER;
+   * no-URL-params auto-search — filters still hold the initial useState defaults at that
+   * point, so it's always safe to resolve and override gender and ages here.
+   *
+   * Signed-in users get their own profile preferences: genderPreference, and the "looking
+   * for" age range, with whichever end isn't set falling back to DEFAULT_MIN_AGE /
+   * DEFAULT_MAX_AGE. */
+  async function resolveDefaultSearchPrefs(): Promise<Pick<FilterState, "gender" | "minAge" | "maxAge">> {
+    const anonymous = { gender: DEFAULT_ANON_GENDER, minAge: DEFAULT_MIN_AGE, maxAge: DEFAULT_MAX_AGE } as const;
+    if (!isLoggedIn) return anonymous;
     try {
       const profile = await fetchMyProfileCached();
-      if (profile?.genderPreference === "male" || profile?.genderPreference === "female") {
-        return profile.genderPreference;
-      }
+      const gender =
+        profile?.genderPreference === "male" || profile?.genderPreference === "female"
+          ? profile.genderPreference
+          : anonymous.gender;
+      const minAge = profile?.seekingAgeMin ?? DEFAULT_MIN_AGE;
+      const maxAge = profile?.seekingAgeMax ?? Math.max(DEFAULT_MAX_AGE, minAge);
+      return { gender, minAge, maxAge };
     } catch {
-      // fall through to the anonymous default
+      return anonymous;
     }
-    return DEFAULT_ANON_GENDER;
   }
 
   async function requestLocationAndSearch() {
@@ -233,12 +241,12 @@ export default function HomeClient() {
     setLoading(true);
     setProfiles([]);
 
-    const gender = await resolveDefaultGender();
+    const prefs = await resolveDefaultSearchPrefs();
 
     if (!navigator.geolocation) {
       const guessedCountry = guessCountryFromTimezone();
       if (guessedCountry) {
-        await applyFilters({ ...filters, gender, country: guessedCountry, city: "" });
+        await applyFilters({ ...filters, ...prefs, country: guessedCountry, city: "" });
       } else {
         setProfiles([]);
         setLoading(false);
@@ -261,7 +269,7 @@ export default function HomeClient() {
           const cityOptionsForCountry = await fetchCityOptions(normalizedCountry);
           const validatedCity =
             normalizedCity && cityOptionsForCountry.includes(normalizedCity) ? normalizedCity : "";
-          await applyFilters({ ...filters, gender, country: normalizedCountry, city: validatedCity });
+          await applyFilters({ ...filters, ...prefs, country: normalizedCountry, city: validatedCity });
         } catch {
           setProfiles([]);
           setLoading(false);
@@ -274,7 +282,7 @@ export default function HomeClient() {
             throw new Error("Could not determine your location right now.");
           }
 
-          await applyFilters({ ...filters, gender, country: guessedCountry, city: "" });
+          await applyFilters({ ...filters, ...prefs, country: guessedCountry, city: "" });
         } catch {
           setProfiles([]);
           setLoading(false);

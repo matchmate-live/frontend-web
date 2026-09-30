@@ -16,6 +16,7 @@ import {
   presignUpload,
   updateMyProfile,
   validateImageFileBeforeProcessing,
+  withOnboardingQuery,
   type ProfileResponse,
 } from "@/lib/onboarding";
 
@@ -206,7 +207,7 @@ export default function OnboardingPhotosForm() {
   return (
     <article className="rounded-2xl border border-pink-200 bg-white p-6 shadow-sm sm:p-8">
       <header>
-        <p className="text-sm font-medium text-pink-300">Step 2 of 2</p>
+        <p className="text-sm font-medium text-pink-300">Step 3 of 3</p>
         <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Profile photos</h1>
         <p className="mt-2 text-sm text-zinc-600">
           Add up to {MAX_PROFILE_PHOTOS} photos (JPEG, max 5 MB each). Photos are optional — you can add them later
@@ -305,8 +306,8 @@ export default function OnboardingPhotosForm() {
       ) : null}
 
       <p className="mt-4 text-center text-sm text-zinc-600">
-        <Link className="text-pink-300 underline" href={ONBOARDING_ROUTES.profile}>
-          Back to profile
+        <Link className="text-pink-300 underline" href={withOnboardingQuery(ONBOARDING_ROUTES.about)}>
+          Back
         </Link>
       </p>
 

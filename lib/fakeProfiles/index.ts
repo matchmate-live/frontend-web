@@ -1,12 +1,15 @@
 import type { SearchProfile } from "@/lib/search";
+import type { ProfileResponse } from "@/lib/onboarding/types";
 import { ageFromIsoDobUtc } from "@/lib/onboarding/validation";
 import fakeProfilesDataDev from "./data.dev.json";
 import fakeProfilesDataProd from "./data.prod.json";
 
 // Stored as `dob`, not `age` — age is derived at read time (ageFromIsoDobUtc below), same
 // as real profiles, so it doesn't freeze at whatever value it was when the data was
-// generated and quietly go stale as real time passes.
-type FakeProfileTemplate = Omit<SearchProfile, "lastSeen" | "age"> & { dob: string };
+// generated and quietly go stale as real time passes. The optional "about me" fields
+// (likes, heightCm, seekingAgeMin, …) are carried through as-is when present.
+type FakeProfileTemplate = Omit<SearchProfile, "lastSeen" | "age"> &
+  Pick<ProfileResponse, "likes" | "ethnicity" | "race" | "bodyType" | "heightCm"> & { dob: string };
 type CountryEntry = { male: FakeProfileTemplate[]; female: FakeProfileTemplate[] };
 
 // `next build` (any deployed environment) sets NODE_ENV=production; only `next dev` is
@@ -51,8 +54,48 @@ export function getMatchingFakeProfiles(
 
   return result.map(({ dob, ...profile }) => ({
     ...profile,
+    ...liveFields(dob, normalizedGender),
+  }));
+}
+
+/** Fields computed at read time, shared by search results and the profile view. */
+function liveFields(dob: string, gender: "male" | "female") {
+  return {
     age: ageFromIsoDobUtc(dob) ?? undefined,
     lastSeen: Date.now(),
     emailVerified: true,
-  }));
+    // Same rule as the backend's seeded system users (backend/scripts/seedFakeUsers.js), so
+    // filler profiles show a "Looking for …" line like real ones do.
+    genderPreference: gender === "male" ? "female" : "male",
+  };
+}
+
+let byUserId: Map<string, { template: FakeProfileTemplate; gender: "male" | "female" }> | null = null;
+
+/**
+ * A fake profile by userId, shaped like the backend's public profile response — or null if
+ * the id isn't a fake one. Lets the profile route answer fake ids locally instead of calling
+ * the backend: the seeded DB rows share these same userIds, so it's the same profile either
+ * way, and this JSON stays the single source of what fake profiles look like.
+ */
+export function getFakeProfileById(userId: string): ProfileResponse | null {
+  if (!byUserId) {
+    byUserId = new Map();
+    for (const entry of Object.values(DATA)) {
+      for (const gender of ["male", "female"] as const) {
+        for (const template of entry[gender] ?? []) {
+          byUserId.set(template.userId, { template, gender });
+        }
+      }
+    }
+  }
+  const found = byUserId.get(userId);
+  if (!found) return null;
+  const { template, gender } = found;
+  return {
+    ...template,
+    gender: template.gender ?? gender,
+    photos: template.photos ?? [],
+    ...liveFields(template.dob, gender),
+  };
 }

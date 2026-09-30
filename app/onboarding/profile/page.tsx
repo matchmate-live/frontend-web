@@ -122,7 +122,7 @@ export default function OnboardingProfilePage() {
         gender,
         genderPreference,
       });
-      router.push(withOnboardingQuery(ONBOARDING_ROUTES.photos));
+      router.push(withOnboardingQuery(ONBOARDING_ROUTES.about));
     } catch (err) {
       // A real 401 already triggered the session-expired toast (see clientError.ts);
       // this just needs to skip the redundant inline error for that one case.
@@ -145,7 +145,7 @@ export default function OnboardingProfilePage() {
   return (
     <article className="rounded-2xl border border-pink-200 bg-white p-6 shadow-sm sm:p-8">
       <header>
-        <p className="text-sm font-medium text-pink-300">Step 1 of 2</p>
+        <p className="text-sm font-medium text-pink-300">Step 1 of 3</p>
         <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Your profile</h1>
         <p className="mt-2 text-sm text-zinc-600">
           Tell others a bit about you. You can update this later in settings.
@@ -312,7 +312,7 @@ export default function OnboardingProfilePage() {
           disabled={saving}
           type="submit"
         >
-          {saving ? "Saving…" : "Continue to photos"}
+          {saving ? "Saving…" : "Continue"}
         </button>
       </form>
     </article>

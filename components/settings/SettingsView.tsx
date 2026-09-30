@@ -10,14 +10,16 @@ import { ADS_SLOTS } from "@/lib/adsConfig";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { fetchMyProfileCached, type ProfileResponse } from "@/lib/onboarding";
 import ProfileTab from "./ProfileTab";
+import AboutTab from "./AboutTab";
 import PhotosTab from "./PhotosTab";
 import AccountTab from "./AccountTab";
 import SettingsSkeleton from "./SettingsSkeleton";
 
-type Tab = "profile" | "photos" | "account";
+type Tab = "profile" | "about" | "photos" | "account";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "profile", label: "Profile" },
+  { id: "about", label: "About me" },
   { id: "photos", label: "Photos" },
   { id: "account", label: "Account" },
 ];
@@ -106,6 +108,9 @@ export default function SettingsView() {
     if (activeTab === "profile") {
       return <ProfileTab profile={profile} onSaved={setProfile} />;
     }
+    if (activeTab === "about") {
+      return <AboutTab profile={profile} onSaved={setProfile} />;
+    }
     if (activeTab === "photos") {
       return <PhotosTab profile={profile} onSaved={setProfile} />;
     }
@@ -141,11 +146,13 @@ export default function SettingsView() {
       <MobileDrawer isLoggedIn={isLoggedIn} open={menuOpen} onClose={() => setMenuOpen(false)} onLogout={signOut} />
 
       <div className="border-b border-pink-200 bg-white">
-        <div className="mx-auto flex w-full max-w-7xl gap-1 px-6">
+        {/* Tighter padding on phones so all four tabs fit; overflow-x-auto is the fallback
+            on very narrow screens. */}
+        <div className="mx-auto flex w-full max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6">
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              className={`cursor-pointer border-b-2 px-4 py-3 text-sm font-medium transition ${
+              className={`shrink-0 cursor-pointer whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition sm:px-4 ${
                 activeTab === tab.id
                   ? "border-pink-500 text-pink-600"
                   : "border-transparent text-zinc-600 hover:text-zinc-900"
