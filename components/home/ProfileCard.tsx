@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import {
-  formatLastSeenStatus,
+  formatTimeAgo,
   parseCountryGender,
   parseLocationGender,
 } from "@/lib/profileSearchDisplay";
 import { SearchProfile } from "@/lib/search";
 import { titleCase } from "@/lib/location";
+import { formatLookingFor } from "@/lib/profileDetails";
 import MessagesIcon from "@/icons/messages.svg";
 import UserRoundIcon from "@/icons/user-round.svg";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
@@ -64,30 +65,31 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
   const photoSrc = profilePhotoSrc(profile.photos?.[0]);
   const genderLabel = displayGender(profile);
   const locationLine = displayCityCountry(profile);
+  const lookingFor = formatLookingFor(profile.genderPreference, profile.seekingAgeMin, profile.seekingAgeMax);
   const online = isRecentlyOnline(profile.lastSeen);
   const statusLine = online
-    ? "Status: Online"
+    ? "Online now"
     : typeof profile.lastSeen === "number" && Number.isFinite(profile.lastSeen)
-      ? `Status: Last seen — ${formatLastSeenStatus(profile.lastSeen)}`
-      : "Status: —";
+      ? `Last seen ${formatTimeAgo(profile.lastSeen)}`
+      : "Last seen —";
 
   return (
-    <article className="w-full rounded-xl border border-pink-200 bg-white shadow-sm sm:p-4">
+    <article className="w-full overflow-hidden rounded-xl border border-pink-200 bg-white shadow-sm sm:p-4">
       <div className="flex w-full min-w-0 flex-col sm:flex-row sm:items-stretch sm:gap-4">
-        {/* object-contain = full photo visible; letterboxing uses bg (no cropping like object-cover). */}
-        <div className="relative mx-auto flex aspect-[5/4] w-full max-w-full min-w-0 shrink-0 items-center justify-center overflow-hidden bg-pink-50/90 sm:mx-0 sm:aspect-auto sm:h-28 sm:max-w-[7rem] sm:w-28 sm:rounded-lg">
+        <div className="flex w-full min-w-0 shrink-0 items-center justify-center overflow-hidden bg-pink-50/90 sm:h-28 sm:w-28 sm:rounded-lg">
           <Image
             alt={`${name}'s photo`}
-            className="max-h-full max-w-full object-contain object-center"
-            fill
+            className="block h-auto max-h-[70vh] w-full object-contain object-center sm:h-full sm:max-h-none"
+            height={0}
             priority={priority}
             sizes="(max-width: 639px) 100vw, 112px"
             src={photoSrc}
+            width={0}
           />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3 px-4 pb-4 pt-3 sm:min-h-28 sm:justify-between sm:gap-4 sm:p-0 sm:pt-0">
-          <div className="flex flex-col gap-1 sm:gap-1.5">
+          <div className="flex flex-col gap-1 sm:gap-0.5">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <h3 className="flex min-w-0 items-center gap-1.5 text-lg font-semibold leading-snug text-zinc-900">
                 <span className="min-w-0 truncate">{name}</span>
@@ -100,9 +102,18 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
               )}
             </div>
             <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
-              <span className="min-w-0 shrink font-medium text-zinc-800">{genderLabel}</span>
-              <span className="min-w-0 shrink text-right text-zinc-700">{locationLine}</span>
+              <span
+                className="min-w-0 shrink font-medium text-zinc-800 sm:truncate"
+                title={lookingFor ? `${genderLabel} · ${lookingFor}` : undefined}
+              >
+                {genderLabel}
+                {lookingFor ? (
+                  <span className="hidden font-normal text-zinc-600 sm:inline"> · {lookingFor}</span>
+                ) : null}
+              </span>
+              <span className="min-w-0 shrink text-right text-zinc-700 sm:shrink-0">{locationLine}</span>
             </div>
+            {lookingFor ? <p className="text-sm text-zinc-600 sm:hidden">{lookingFor}</p> : null}
           </div>
 
           {/* Mobile: status then buttons on separate rows · sm+: one row */}

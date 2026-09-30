@@ -10,6 +10,7 @@ import AdSlot from "@/components/ads/AdSlot";
 import BackButton from "@/components/ui/BackButton";
 import ErrorCard from "@/components/ui/ErrorCard";
 import ProfileDetailSkeleton from "@/components/profile/ProfileDetailSkeleton";
+import ProfileDetailsSummary from "@/components/profile/ProfileDetailsSummary";
 import ProfilePhotoCarousel from "@/components/profile/ProfilePhotoCarousel";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -176,12 +177,14 @@ export default function PublicProfilePage() {
 
                   {profile.description?.trim() ? (
                     <div className="border-t border-pink-100 pt-6">
-                      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">About</h2>
+                      <h2 className="text-lg font-semibold text-zinc-900">About me</h2>
                       <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed text-zinc-800">
                         {profile.description.trim()}
                       </p>
                     </div>
                   ) : null}
+
+                  <ProfileDetailsSummary profile={profile} />
 
                   {!isOwnProfile ? (
                     <div className="mt-auto border-t border-pink-100 pt-8">

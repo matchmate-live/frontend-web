@@ -20,6 +20,15 @@ export type ProfileResponse = {
   age?: number;
   /** Epoch ms; present on search and profile views. */
   lastSeen?: number;
+  /** Optional details — option keys, see lib/profileDetails.ts. Absent when not set. */
+  likes?: string[];
+  ethnicity?: string;
+  race?: string;
+  bodyType?: string;
+  heightCm?: number;
+  /** Either end may be set alone: min only = "min and up", max only = "18 up to max". */
+  seekingAgeMin?: number;
+  seekingAgeMax?: number;
 };
 
 export type OnboardingProfileFieldErrors = Partial<{

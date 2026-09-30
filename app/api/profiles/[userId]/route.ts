@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverEnv } from "@/lib/api/serverEnv";
 import { forwardJsonResponse } from "@/lib/api/proxy";
+import { getFakeProfileById } from "@/lib/fakeProfiles";
 
 export const runtime = "nodejs";
 
@@ -23,14 +24,21 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ userId: string }> },
 ) {
-  const apiBaseUrl = serverEnv("API_BASE_URL");
-  if (!apiBaseUrl) {
-    return NextResponse.json({ message: "Server is missing API_BASE_URL." }, { status: 500 });
-  }
-
   const { userId } = await context.params;
   if (!userId?.trim()) {
     return NextResponse.json({ message: "userId is required" }, { status: 400 });
+  }
+
+  // Fake (filler) profiles are answered from the local JSON — no backend round trip. Not
+  // cached: lastSeen is stamped "now" on every read, like the search results they come from.
+  const fake = getFakeProfileById(userId.trim());
+  if (fake) {
+    return NextResponse.json(fake, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  const apiBaseUrl = serverEnv("API_BASE_URL");
+  if (!apiBaseUrl) {
+    return NextResponse.json({ message: "Server is missing API_BASE_URL." }, { status: 500 });
   }
 
   try {
