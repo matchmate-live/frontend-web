@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import {
   DEFAULT_ANON_GENDER,
@@ -54,7 +54,6 @@ export default function HomeClient() {
     };
   }, []);
   const { isLoggedIn, signOut } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -156,18 +155,18 @@ export default function HomeClient() {
    * syncFiltersToUrl, or read via the render-time sync below) — lets that check tell "we
    * just wrote this" from "a back/forward navigation changed the URL". */
   const [lastSeenSearch, setLastSeenSearch] = useState<string | null>(null);
-  // True from the moment syncFiltersToUrl calls router.replace() until
-  // window.location.search actually reflects it. router.replace() doesn't update
-  // window.location synchronously — there's a real lag — and without this flag, a render
-  // during that lag reads the still-stale window.location.search, wrongly concludes an
-  // external navigation happened, and stomps lastSeenSearch back to the stale value. Once
-  // that happens, the *next* read (once the URL genuinely catches up) looks like a second
-  // "external" change and fires a second, identical search — confirmed via console trace.
-  const awaitingUrlWriteRef = useRef(false);
 
   /** Reflects filters into the URL query string (replace, not push — no history spam per
    * keystroke/filter tweak) so browser back-navigation from a profile or another page
-   * restores this exact search instead of resetting to a fresh auto-detected one. */
+   * restores this exact search instead of resetting to a fresh auto-detected one.
+   *
+   * Native history.replaceState, not router.replace(): router.replace() is a full soft
+   * navigation that refetches the route from the server and only updates the address bar
+   * once that completes — on slower mobile connections the URL visibly lagged or never
+   * changed. The filters live in client state and the search is its own API call, so no
+   * server round trip is needed; Next.js integrates replaceState with its router, so
+   * usePathname/useSearchParams stay in sync. It also updates window.location
+   * synchronously, so the render-time sync below sees the new query straight away. */
   function syncFiltersToUrl(f: FilterState) {
     const params = new URLSearchParams({
       country: f.country,
@@ -177,9 +176,8 @@ export default function HomeClient() {
     });
     if (f.city) params.set("city", f.city);
     const qs = `?${params.toString()}`;
-    awaitingUrlWriteRef.current = true;
     setLastSeenSearch(qs);
-    router.replace(`${pathname}${qs}`, { scroll: false });
+    window.history.replaceState(null, "", `${pathname}${qs}`);
   }
 
   async function applyFilters(nextFilters: FilterState) {
@@ -294,15 +292,7 @@ export default function HomeClient() {
 
   function syncFromLocation() {
     const currentSearch = window.location.search;
-    if (currentSearch === lastSeenSearch) {
-      awaitingUrlWriteRef.current = false; // our own write (if any) has now landed
-      return;
-    }
-    if (awaitingUrlWriteRef.current) {
-      // window.location hasn't caught up to our own most recent router.replace() yet —
-      // this mismatch is lag, not an external navigation. Don't act on it.
-      return;
-    }
+    if (currentSearch === lastSeenSearch) return;
     setLastSeenSearch(currentSearch);
     const fromUrl = filtersFromParams(new URLSearchParams(currentSearch));
     if (fromUrl) {
