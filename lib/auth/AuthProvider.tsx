@@ -9,34 +9,28 @@ import { clearMyProfileCache } from "@/lib/onboarding/myProfileCache";
 import { resetPresence } from "@/lib/presence";
 
 type AuthContextValue = {
-  /** True once the initial check has resolved (either way) — false only during that first check. */
+  /** True only while the first sign-in check is running. */
   loading: boolean;
   isLoggedIn: boolean;
-  /** Cognito sub of the signed-in user, or null when signed out. Use this (not a separate
-   *  getCurrentUser() call) anywhere "is this my own profile/conversation/etc." matters. */
+  /** Signed-in user's id, or null. Use this to check "is this mine". */
   userId: string | null;
-  /** Re-runs the check now. Rarely needed — sign-in/out anywhere already updates every consumer via Hub. */
+  /** Re-checks now. Rarely needed, sign-in/out already updates everything. */
   refresh: () => void;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/**
- * Single source of truth for "is anyone signed in" — configures Amplify and calls
- * getCurrentUser() exactly once per app load (not once per component that needs the answer),
- * then stays current via Amplify's Hub auth events instead of every consumer re-polling.
- */
+// The app's sign-in state. Checks once on load, then updates from Amplify's auth events.
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  // undefined = not checked yet this page load (so the first check doesn't count as a switch).
+  // undefined until the first check, so that check doesn't count as an account switch.
   const lastUserIdRef = useRef<string | null | undefined>(undefined);
 
-  /** Per-account browser state (cached "my profile", presence timestamp) lives in
-   * localStorage — drop it whenever the signed-in account changes, however that happened
-   * (sign-in/out here, session expiry, or another tab), so nothing leaks between accounts. */
+  // Clears per-account data in localStorage (cached profile, presence) when the account
+  // changes, so nothing carries over to the next user.
   const onUserResolved = useCallback((next: string | null) => {
     const prev = lastUserIdRef.current;
     lastUserIdRef.current = next;
@@ -47,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const check = useCallback(() => {
-    // If this fails (env missing), getCurrentUser() below just rejects into "not logged in".
+    // If config is missing, getCurrentUser() just fails and we treat it as signed out.
     configureAmplifyAuth();
     getCurrentUser()
       .then((u) => {

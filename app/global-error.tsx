@@ -3,11 +3,8 @@
 import { useEffect } from "react";
 import "./globals.css";
 
-/**
- * Last-resort fallback — only renders if the root layout itself throws (error.tsx can't
- * catch that). Must define its own <html>/<body> since it replaces the root layout
- * entirely; deliberately skips the Google Fonts import to keep its dependency surface small.
- */
+// Last-resort error page, only used if the root layout itself crashes. It replaces the
+// layout, so it needs its own <html>/<body>. Kept minimal on purpose (no web fonts).
 export default function GlobalError({
   error,
   unstable_retry,

@@ -1,7 +1,7 @@
 import { ONBOARDING_QUERY, ONBOARDING_ROUTES, PROFILE_GATE_SKIP_PREFIXES } from "./constants";
 import type { ProfileResponse } from "./types";
 
-/** Where to send the user after OAuth or sign-in when `next` is not set. */
+// Where to go after sign-in when there's no `next`.
 export function getPostAuthRedirectPath(profile: ProfileResponse | null): string {
   if (!profile) {
     return ONBOARDING_ROUTES.profile;
@@ -15,7 +15,7 @@ export function getPostAuthRedirectPath(profile: ProfileResponse | null): string
   return "/";
 }
 
-/** Adds query flags for onboarding messaging and first-time photos step. */
+// Adds the onboarding query flags (banner text, first visit to photos).
 export function withOnboardingQuery(dest: string): string {
   if (dest === "/") {
     return "/";

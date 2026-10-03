@@ -12,10 +12,8 @@ type AdSlotProps = {
   slot: string;
   className: string;
   /**
-   * Fixed pixel size (e.g. a 250x600 skyscraper). Omit for a responsive "auto"-format ad
-   * — but AdSense's auto format will forcibly override ancestor height/min-height with
-   * inline !important styles if the chosen creative doesn't fit (see AdRail, which needs
-   * a fixed size to avoid that in a sticky sidebar).
+   * Fixed size, e.g. 250x600. Leave out for a responsive ad, but note AdSense may then
+   * override the parent's height (why AdRail uses a fixed size).
    */
   size?: { width: number; height: number };
 };
@@ -29,10 +27,8 @@ export default function AdSlot({ slot, className, size }: AdSlotProps) {
     const el = wrapperRef.current;
     if (!el) return;
 
-    // Mobile/desktop slots are both mounted at once (Tailwind only toggles CSS display),
-    // so the hidden one has width 0 — pushing then throws "No slot size for
-    // availableWidth=0". A synchronous offsetWidth read here isn't reliable since layout
-    // may still be settling; ResizeObserver only fires once layout is actually computed.
+    // Both mobile and desktop slots are mounted; the hidden one has width 0 and AdSense
+    // throws for it. Wait for a real width with ResizeObserver before loading the ad.
     let pushed = false;
     const observer = new ResizeObserver(() => {
       if (pushed || el.offsetWidth <= 0) return;
@@ -54,9 +50,7 @@ export default function AdSlot({ slot, className, size }: AdSlotProps) {
   }
 
   return (
-    // No data-full-width-responsive: that flag sizes the ad to the full viewport width
-    // (by design), breaking out of its container. Plain data-ad-format="auto" sizes to
-    // this element's own container instead; overflow-hidden is a safety net either way.
+    // No data-full-width-responsive, it makes the ad full screen width. "auto" fits the container.
     <div ref={wrapperRef} className="w-full max-w-full overflow-hidden">
       <ins
         className={`adsbygoogle ${className}`}

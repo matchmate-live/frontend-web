@@ -1,9 +1,8 @@
 import type { ProfileResponse } from "@/lib/onboarding";
 
 /**
- * Optional "about me" profile details. Values are the stable keys the backend validates
- * against (backend/src/utils/profileDetails.js) — keep both lists in sync. Labels are
- * display-only and can be reworded freely; values can't without migrating stored profiles.
+ * Optional "about me" fields. Values must match the backend's lists
+ * (backend/src/utils/profileDetails.js). Labels can be reworded freely; values can't.
  */
 type Option = { value: string; label: string };
 
@@ -79,11 +78,11 @@ export const BODY_TYPE_OPTIONS: Option[] = [
 
 export const MIN_HEIGHT_CM = 100;
 export const MAX_HEIGHT_CM = 250;
-/** Same bounds as profile ages (backend MIN_ALLOWED_AGE / MAX_ALLOWED_AGE). */
+// Same limits as profile ages on the backend.
 export const MIN_SEEKING_AGE = 18;
 export const MAX_SEEKING_AGE = 100;
 
-/** Form state — numbers kept as strings so inputs can be empty/mid-typing. */
+// Form state. Numbers are strings so inputs can be empty while typing.
 export type ProfileDetailsForm = {
   likes: string[];
   ethnicity: string;
@@ -117,7 +116,7 @@ function toIntOrNull(s: string): number | null {
   return t ? Number(t) : null;
 }
 
-/** API body for the details. Every field is always sent — `null` clears it on the backend. */
+// Request body. Every field is sent; null clears it.
 export function profileDetailsToPayload(d: ProfileDetailsForm) {
   return {
     likes: d.likes,
@@ -135,7 +134,7 @@ function isIntInRange(s: string, min: number, max: number): boolean {
   return Number.isInteger(n) && n >= min && n <= max;
 }
 
-/** Mirrors the backend rules so users see errors inline instead of after a round trip. */
+// Same rules as the backend, so errors show right away.
 export function validateProfileDetails(d: ProfileDetailsForm): ProfileDetailsErrors {
   const errors: ProfileDetailsErrors = {};
   if (d.heightCm.trim() && !isIntInRange(d.heightCm, MIN_HEIGHT_CM, MAX_HEIGHT_CM)) {
@@ -155,7 +154,7 @@ export function validateProfileDetails(d: ProfileDetailsForm): ProfileDetailsErr
   return errors;
 }
 
-/** "25–35", "25+" (min only), "18–35" (max only), or undefined when neither is set. */
+// "25–35", "25+" or "18–35", or undefined if neither end is set.
 export function formatSeekingAgeRange(min?: number, max?: number): string | undefined {
   if (min != null && max != null) return min === max ? `${min}` : `${min}–${max}`;
   if (min != null) return `${min}+`;
@@ -163,10 +162,7 @@ export function formatSeekingAgeRange(min?: number, max?: number): string | unde
   return undefined;
 }
 
-/**
- * "Looking for men aged 25 to 35" · "… aged 30+" (min only) · "… aged 18 to 35" (max only) ·
- * "Looking for women" (no range). Undefined when genderPreference isn't a known value.
- */
+// e.g. "Looking for men aged 25 to 35", "... aged 30+", or just "Looking for women".
 export function formatLookingFor(genderPreference?: string, min?: number, max?: number): string | undefined {
   const who = genderPreference === "male" ? "men" : genderPreference === "female" ? "women" : undefined;
   if (!who) return undefined;
@@ -178,7 +174,7 @@ export function formatLookingFor(genderPreference?: string, min?: number, max?: 
   return `Looking for ${who}`;
 }
 
-/** "170 cm (5′7″)". */
+// e.g. "170 cm (5′7″)"
 export function formatHeight(cm: number): string {
   const totalInches = Math.round(cm / 2.54);
   return `${cm} cm (${Math.floor(totalInches / 12)}′${totalInches % 12}″)`;

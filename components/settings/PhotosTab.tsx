@@ -1,13 +1,17 @@
 "use client";
 
-import Image from "next/image";
+import ProfilePhotoImage from "@/components/ui/ProfilePhotoImage";
 import { useEffect, useRef, useState } from "react";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
-import { MAX_PROFILE_PHOTOS, prepareProfilePhotos } from "@/lib/imageUpload";
+import {
+  discardUnsavedPhotos,
+  MAX_PROFILE_PHOTOS,
+  prepareProfilePhotos,
+  uploadProfilePhoto,
+} from "@/lib/imageUpload";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import {
   deleteUploadedPhoto,
-  presignUpload,
   updateMyProfile,
   validateImageFileBeforeProcessing,
   type ProfileResponse,
@@ -28,7 +32,7 @@ export default function PhotosTab({ profile, onSaved }: PhotosTabProps) {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  // Revoke any preview URLs still outstanding if the tab unmounts before saving.
+  // Free any preview URLs left over if the tab unmounts before saving.
   useEffect(() => {
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -88,29 +92,22 @@ export default function PhotosTab({ profile, onSaved }: PhotosTabProps) {
     setError("");
     setSaved(false);
     const removedKeys = (profile?.photos ?? []).filter((k) => !existingPhotos.includes(k));
+    // Outside the try so the catch can clean up what was uploaded.
+    const uploadedKeys: string[] = [];
+    let profileSaved = false;
     try {
-      // Existing photos render before pending ones in the grid, so number after them.
-      const jpegs = await prepareProfilePhotos(
+      // New photos come after the saved ones in the grid, so number them after.
+      const prepared = await prepareProfilePhotos(
         pendingPhotos.map((p) => p.file),
         existingPhotos.length,
       );
-      const uploadedKeys: string[] = [];
-      for (const jpeg of jpegs) {
-        const { uploadUrl, key } = await presignUpload();
-        const put = await fetch(uploadUrl, {
-          method: "PUT",
-          // Must match exactly what the presigned URL signed (see presignMedia's
-          // ServerSideEncryption: 'AES256') — S3 rejects the request with a signature
-          // mismatch otherwise, since this header is part of what was signed.
-          headers: { "Content-Type": "image/jpeg", "x-amz-server-side-encryption": "AES256" },
-          body: jpeg,
-        });
-        if (!put.ok) throw new Error("Photo upload failed. Try again.");
-        uploadedKeys.push(key);
+      for (const photo of prepared) {
+        uploadedKeys.push(await uploadProfilePhoto(photo));
       }
 
       const finalPhotos = [...existingPhotos, ...uploadedKeys];
       const updated = await updateMyProfile({ photos: finalPhotos });
+      profileSaved = true;
       onSaved(updated);
       setExistingPhotos(updated.photos ?? finalPhotos);
       pendingPhotos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
@@ -119,12 +116,13 @@ export default function PhotosTab({ profile, onSaved }: PhotosTabProps) {
       setSaved(true);
       setTimeout(() => setSaved(false), 4000);
 
-      // Best-effort cleanup — the profile no longer references these, so it's safe to
-      // remove them now; a failure here doesn't affect what was already saved.
+      // Delete the removed photos. Best effort; the save already went through.
       for (const key of removedKeys) {
         deleteUploadedPhoto(key).catch(() => {});
       }
     } catch (err) {
+      // Uploaded but never saved to the profile, so clean them up.
+      if (!profileSaved) void discardUnsavedPhotos(uploadedKeys);
       if (!isSessionExpiredError(err)) {
         setError(err instanceof Error ? err.message : "Could not save your photos.");
       }
@@ -158,7 +156,7 @@ export default function PhotosTab({ profile, onSaved }: PhotosTabProps) {
             <ul className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
               {existingPhotos.map((key) => (
                 <li key={key} className="relative aspect-square overflow-hidden rounded-lg bg-pink-50">
-                  <Image alt="Your photo" className="object-cover" fill sizes="120px" src={profilePhotoSrc(key)} />
+                  <ProfilePhotoImage alt="Your photo" className="object-cover" fill sizes="120px" src={profilePhotoSrc(key)} />
                   <button
                     aria-label="Remove photo"
                     className="absolute right-1 top-1 cursor-pointer rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white"
@@ -171,7 +169,7 @@ export default function PhotosTab({ profile, onSaved }: PhotosTabProps) {
               ))}
               {pendingPhotos.map((p, i) => (
                 <li key={p.previewUrl} className="relative aspect-square overflow-hidden rounded-lg bg-pink-50">
-                  {/* Local blob preview — next/image can't optimize blob: URLs. */}
+                  {/* Local preview; next/image can't handle blob: URLs. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img alt="New photo" className="h-full w-full object-cover" src={p.previewUrl} />
                   <button

@@ -1,11 +1,10 @@
-/** Matches backend `profileOnboarding` age rules. */
+// Same age limits as the backend.
 export const MIN_PROFILE_AGE = 18;
 export const MAX_PROFILE_AGE = 100;
 
 export const ONBOARDING_ROUTES = {
   profile: "/onboarding/profile",
-  /** Optional details (likes, height, …). Not tracked server-side: it sits between the two
-   * tracked steps, so a user who leaves mid-way simply resumes at photos. */
+  /** Optional details step. Not tracked by the backend; leaving mid-way resumes at photos. */
   about: "/onboarding/about",
   photos: "/onboarding/photos",
 } as const;
@@ -15,7 +14,7 @@ export const ONBOARDING_QUERY = {
   firstVisit: "firstVisit",
 } as const;
 
-/** Paths where `ProfileCompletionGate` does not run. */
+// Paths where ProfileCompletionGate doesn't run.
 export const PROFILE_GATE_SKIP_PREFIXES = [
   "/auth",
   "/onboarding",

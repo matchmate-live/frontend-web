@@ -18,20 +18,17 @@ type ProfileDetailsFieldsProps = {
   value: ProfileDetailsForm;
   onChange: (next: ProfileDetailsForm) => void;
   errors: ProfileDetailsErrors;
-  /** Keeps element ids unique if the fields ever render twice on one page. */
+  /** Keeps element ids unique on the page. */
   idPrefix: string;
 };
 
 const labelClass = "mb-1 block text-sm font-medium text-zinc-600";
-/** Shared by selects and number inputs so every box in this group looks the same. */
+// Shared by the selects and number inputs so they all look the same.
 const fieldClass =
   "w-full rounded-lg border bg-white py-2.5 pl-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-pink-300";
 
-/**
- * Digits-only text input rather than type="number": avoids the browser spinner arrows (which
- * made these boxes look different from the selects) and still brings up the numeric keypad
- * on phones. Range checks happen in validateProfileDetails.
- */
+// Digits-only text input instead of type="number": no spinner arrows, but phones still show
+// the number keypad. Ranges are checked in validateProfileDetails.
 function NumberInput({
   id,
   value,
@@ -110,7 +107,7 @@ function OptionSelect({
   );
 }
 
-/** The optional "about me" fields, shared by onboarding and Settings → Profile. */
+// The optional "about me" fields, used in onboarding and Settings.
 export default function ProfileDetailsFields({ value, onChange, errors, idPrefix }: ProfileDetailsFieldsProps) {
   function set<K extends keyof ProfileDetailsForm>(key: K, next: ProfileDetailsForm[K]) {
     onChange({ ...value, [key]: next });

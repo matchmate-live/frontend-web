@@ -1,5 +1,5 @@
 type EmptyProfilesStateProps = {
-  /** "error" renders a distinct message/icon so a failed request never looks like "no matches". */
+  /** "error" shows a different message so a failed request doesn't look like "no matches". */
   variant?: "empty" | "error";
   message?: string;
   onRetry?: () => void;

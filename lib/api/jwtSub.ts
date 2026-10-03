@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
 
-/** Extract Cognito `sub` from ID token (verification still happens upstream). */
+// Reads the user id from an ID token. The backend still verifies it.
 export function getSubFromBearerAuth(authorization: string | null): string | null {
   if (!authorization?.startsWith("Bearer ")) return null;
   const token = authorization.slice(7);

@@ -1,18 +1,26 @@
-/**
- * Default avatar when a profile has no photo or media base URL is not configured.
- * Replace this file with your own image at the same path, or use PNG:
- * `public/images/profile-placeholder.png` and update `PROFILE_PLACEHOLDER_PATH` below.
- */
+// Shown when a profile has no photo, or the media URL isn't configured.
 export const PROFILE_PLACEHOLDER_PATH = "/images/profile-placeholder.svg";
+
+/**
+ * Each photo has a thumbnail up to this size at x.thumb.jpg (same rule as the backend's
+ * thumbKeyFor). 400px is enough for the 112px desktop card on 3x screens.
+ */
+export const PHOTO_THUMB_MAX_PX = 400;
+
+export function thumbUrlFor(photoUrl: string): string {
+  return photoUrl.replace(/\.jpg$/i, ".thumb.jpg");
+}
+
+// True for uploaded photos, false for the placeholder.
+export function hasThumbnail(src: string): boolean {
+  return /^https?:\/\//.test(src) && /\.jpg$/i.test(src);
+}
 
 function profileMediaBaseUrl(): string {
   return process.env.NEXT_PUBLIC_PROFILE_MEDIA_BASE_URL?.trim().replace(/\/$/, "") ?? "";
 }
 
-/**
- * Public URL for a stored photo key (S3/CloudFront). Keys are relative (e.g. `users/.../file.jpg`).
- * If `NEXT_PUBLIC_PROFILE_MEDIA_BASE_URL` is unset, returns the placeholder so the UI never shows a broken key as src.
- */
+// Public URL for a photo key. Falls back to the placeholder if the media URL isn't set.
 export function profilePhotoSrc(firstPhotoKey: string | undefined): string {
   const key = firstPhotoKey?.trim();
   if (!key) return PROFILE_PLACEHOLDER_PATH;

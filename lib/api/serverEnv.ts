@@ -1,8 +1,5 @@
-/**
- * Server-only (Route Handlers, server components). Dynamic `process.env[name]` is fine here —
- * Node sees the full env loaded from `.env.local`. Do not use this pattern for `NEXT_PUBLIC_*`
- * in code that runs in the browser; use `process.env.NEXT_PUBLIC_*` literals instead.
- */
+// Server-only env reads. process.env[name] works on the server, but not for
+// NEXT_PUBLIC_* values in browser code.
 export function serverEnv(name: string): string {
   const value = process.env[name];
   return typeof value === "string" ? value.trim() : "";

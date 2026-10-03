@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchCityOptions } from "@/lib/geoData";
 
-/** City options for a country dropdown — empty until that country's list has loaded. */
+// Cities for the chosen country. Empty until the list loads.
 export function useCityOptions(countryValue: string): string[] {
   const [loaded, setLoaded] = useState<{ country: string; cities: string[] }>({
     country: "",
@@ -19,6 +19,6 @@ export function useCityOptions(countryValue: string): string[] {
     };
   }, [countryValue]);
 
-  // Keyed by country so a stale list never shows under a newly picked country.
+  // Don't show the previous country's list while the new one loads.
   return loaded.country === countryValue ? loaded.cities : [];
 }

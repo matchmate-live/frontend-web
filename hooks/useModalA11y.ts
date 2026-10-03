@@ -12,19 +12,14 @@ function getFocusable(container: HTMLElement): HTMLElement[] {
 }
 
 /**
- * Standard modal accessibility behavior for a dialog-like overlay: moves focus in when it
- * opens, Escape closes it, Tab/Shift+Tab cycles focus within it instead of escaping to the
- * page behind, and focus returns to whatever triggered it once it closes. Attach the
- * returned ref to the dialog's outermost element.
+ * Modal keyboard behaviour: focus moves in on open, Escape closes, Tab stays inside, and
+ * focus goes back to the trigger on close. Put the returned ref on the dialog's outer element.
  */
 export function useModalA11y<T extends HTMLElement>(open: boolean, onClose: () => void) {
   const containerRef = useRef<T | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
-  // Read via a ref, not a dependency, so callers don't need to memoize onClose — an inline
-  // `onClose={() => ...}` prop is a new function every render, and depending on it directly
-  // would tear down and rebuild the listener (and re-run the open-transition logic below) on
-  // every parent re-render, not just on actual open/close transitions.
+  // Kept in a ref so an inline onClose doesn't re-run the effect on every render.
   const onCloseRef = useRef(onClose);
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
@@ -65,12 +60,8 @@ export function useModalA11y<T extends HTMLElement>(open: boolean, onClose: () =
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      // Deferred, not called synchronously: moving focus here can blur whatever currently
-      // has focus inside the dialog (e.g. an input the user was just typing in), and that
-      // element's own onBlur handler may call setState on an ancestor (committing its
-      // value on close, say) — doing that synchronously inside this cleanup re-enters
-      // React's commit phase and can cascade into "Maximum update depth exceeded". Letting
-      // the current render/commit cycle finish first avoids that.
+      // Deferred: moving focus blurs inputs inside the dialog, and their onBlur may set
+      // state. Doing that during this cleanup caused "Maximum update depth exceeded".
       const toFocus = triggerRef.current;
       requestAnimationFrame(() => toFocus?.focus());
     };

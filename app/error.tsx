@@ -6,12 +6,9 @@ import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import { useAuth } from "@/lib/auth/AuthProvider";
 
-/**
- * Root error boundary — catches uncaught rendering errors under the root layout (not the
- * layout itself; see global-error.tsx). Still nested in AuthProvider, so useAuth() is safe
- * here unlike in global-error.tsx. `unstable_retry` is Next 16.2's recovery function,
- * replacing the older `reset` prop.
- */
+// Error page for crashes below the root layout (global-error.tsx covers the layout itself).
+// It's inside AuthProvider, so useAuth() works here. unstable_retry is Next 16.2's
+// replacement for `reset`.
 export default function ErrorPage({
   error,
   unstable_retry,

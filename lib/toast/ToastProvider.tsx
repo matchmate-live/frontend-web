@@ -22,17 +22,13 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const TOAST_DURATION_MS = 6000;
 
-/**
- * App-wide snackbar/toast — transient, never navigates on its own. Used in place of
- * redirecting on session expiry: the page stays as it was, with an optional link (e.g.
- * "Sign in") for the visitor to act on if they choose to.
- */
+// App-wide toast messages. Never navigates by itself; on session expiry it shows a
+// "Sign in" link instead of redirecting.
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
 
-  // Read at call time, not closure-capture time, so the listener always links to whatever
-  // page is current when a 401 happens, without re-registering on every navigation.
+  // Read when the 401 happens, so the sign-in link returns to the current page.
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
   useLayoutEffect(() => {
@@ -47,9 +43,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }, TOAST_DURATION_MS);
   }, []);
 
-  // The single app-wide trigger for the session-expired toast — every 401 funnels through
-  // clientError.ts, which only calls this after confirming a real prior session and
-  // clearing that flag in the same breath, so a burst of failing requests toasts once.
+  // Shows the session-expired toast. clientError.ts only calls this once per real session.
   useEffect(() => {
     setSessionExpiredListener(() => {
       showToast({

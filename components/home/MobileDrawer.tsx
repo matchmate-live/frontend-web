@@ -25,8 +25,7 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
       className={`fixed inset-0 z-50 transition-opacity duration-300 ${
         open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       }`}
-      // Kept mounted (for the slide transition) even while closed — inert removes it from
-      // tab order and the accessibility tree so it can't be reached while invisible.
+      // Stays mounted for the slide animation; inert keeps it unreachable while closed.
       inert={!open}
     >
       <button

@@ -4,10 +4,10 @@ export type ProfileResponse = {
   userId?: string;
   email?: string;
   phone?: string;
-  /** Set by the app's own SES-based verification flow, not Cognito's built-in one. */
+  /** Set by our own email verification, not Cognito's. */
   emailVerified?: boolean;
   onboardingStatus?: OnboardingStatus;
-  /** false = must see optional photos screen once; true = done (or legacy account). */
+  /** false until the user has seen the photos step once. */
   onboardingPhotosPromptCompleted?: boolean;
   name?: string;
   description?: string;
@@ -18,15 +18,15 @@ export type ProfileResponse = {
   genderPreference?: string;
   photos?: string[];
   age?: number;
-  /** Epoch ms; present on search and profile views. */
+  /** Epoch ms. */
   lastSeen?: number;
-  /** Optional details — option keys, see lib/profileDetails.ts. Absent when not set. */
+  /** Optional details (option keys from lib/profileDetails.ts). */
   likes?: string[];
   ethnicity?: string;
   race?: string;
   bodyType?: string;
   heightCm?: number;
-  /** Either end may be set alone: min only = "min and up", max only = "18 up to max". */
+  /** Either end can be set on its own. */
   seekingAgeMin?: number;
   seekingAgeMax?: number;
 };

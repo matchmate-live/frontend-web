@@ -27,7 +27,7 @@ export async function fetchMyProfile(): Promise<ProfileResponse | null> {
 
 let fetchMyProfileInFlight: { userId: string | null; promise: Promise<ProfileResponse | null> } | null = null;
 
-/** Signed-in user's sub from Amplify's local session (no network), or null if signed out. */
+// Signed-in user's id from the local session, or null.
 async function currentUserId(): Promise<string | null> {
   try {
     return (await getCurrentUser()).userId;
@@ -37,13 +37,9 @@ async function currentUserId(): Promise<string | null> {
 }
 
 /**
- * Cached wrapper around fetchMyProfile (see myProfileCache.ts) — "my profile" rarely
- * changes session to session, so re-fetching it on every caller is wasted cost. An
- * in-flight request is shared across simultaneous callers. updateMyProfile below seeds the
- * cache with each write's result, so this tab's own edits are never served stale.
- *
- * Both the cache and the in-flight request are matched to the signed-in user, so switching
- * accounts can never return the previous account's profile.
+ * fetchMyProfile with a short cache, since your own profile rarely changes. Callers at the
+ * same time share one request, and updateMyProfile refreshes the cache.
+ * Both are tied to the signed-in user, so switching accounts never shows the old profile.
  */
 export async function fetchMyProfileCached(options?: { forceRefresh?: boolean }): Promise<ProfileResponse | null> {
   const userId = await currentUserId();
@@ -84,7 +80,13 @@ export async function updateMyProfile(body: Record<string, unknown>): Promise<Pr
   return profile;
 }
 
-export async function presignUpload(): Promise<{ uploadUrl: string; key: string }> {
+export async function presignUpload(): Promise<{
+  uploadUrl: string;
+  key: string;
+  /** Upload URL for the photo's thumbnail. */
+  thumbUploadUrl: string;
+  thumbKey: string;
+}> {
   const headers = await authHeader();
   const res = await fetch("/api/media/presign", {
     method: "POST",
@@ -95,10 +97,10 @@ export async function presignUpload(): Promise<{ uploadUrl: string; key: string 
   if (!res.ok) {
     await throwApiError(res);
   }
-  return res.json() as Promise<{ uploadUrl: string; key: string }>;
+  return res.json() as Promise<{ uploadUrl: string; key: string; thumbUploadUrl: string; thumbKey: string }>;
 }
 
-/** Deletes one of the caller's own previously-uploaded photos from storage. */
+// Deletes one of your uploaded photos.
 export async function deleteUploadedPhoto(key: string): Promise<void> {
   const headers = await authHeader();
   const res = await fetch("/api/media/delete", {
@@ -112,7 +114,7 @@ export async function deleteUploadedPhoto(key: string): Promise<void> {
   }
 }
 
-/** Sends a 6-digit verification code to the caller's own registered email (via SES, not Cognito's). */
+// Emails a 6-digit verification code to your address.
 export async function requestEmailVerificationCode(): Promise<void> {
   const headers = await authHeader();
   const res = await fetch("/api/email/verify/request", {
@@ -126,7 +128,7 @@ export async function requestEmailVerificationCode(): Promise<void> {
   }
 }
 
-/** Confirms the code sent by requestEmailVerificationCode. */
+// Checks the code sent by requestEmailVerificationCode.
 export async function confirmEmailVerificationCode(code: string): Promise<void> {
   const headers = await authHeader();
   const res = await fetch("/api/email/verify/confirm", {

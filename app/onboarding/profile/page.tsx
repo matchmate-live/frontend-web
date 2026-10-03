@@ -124,8 +124,7 @@ export default function OnboardingProfilePage() {
       });
       router.push(withOnboardingQuery(ONBOARDING_ROUTES.about));
     } catch (err) {
-      // A real 401 already triggered the session-expired toast (see clientError.ts);
-      // this just needs to skip the redundant inline error for that one case.
+      // Skip the inline error if the session-expired toast already showed.
       if (!isSessionExpiredError(err)) {
         setError(err instanceof Error ? err.message : "Could not save profile");
       }
