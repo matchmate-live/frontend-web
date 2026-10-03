@@ -84,7 +84,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       setStatus("connecting");
       closedByUsRef.current = false;
       const socket = new WebSocket(
-        `${wsUrl}?token=${encodeURIComponent(token)}&lastSeen=${Date.now()}`,
+        `${wsUrl}?token=${encodeURIComponent(token)}`,
       );
       wsRef.current = socket;
 

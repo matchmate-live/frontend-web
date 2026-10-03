@@ -46,6 +46,4 @@ export type SendMessageAck = {
   ok: boolean;
   message?: Message;
   delivered?: number;
-  lastSeenUpdated?: boolean;
-  lastSeenAt?: number | null;
 };
