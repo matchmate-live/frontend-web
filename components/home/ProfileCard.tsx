@@ -76,15 +76,14 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
   return (
     <article className="w-full overflow-hidden rounded-xl border border-pink-200 bg-white shadow-sm sm:p-4">
       <div className="flex w-full min-w-0 flex-col sm:flex-row sm:items-stretch sm:gap-4">
-        <div className="flex w-full min-w-0 shrink-0 items-center justify-center overflow-hidden bg-pink-50/90 sm:h-28 sm:w-28 sm:rounded-lg">
+        <div className="relative aspect-square w-full min-w-0 shrink-0 overflow-hidden bg-pink-50/90 sm:aspect-auto sm:h-28 sm:w-28 sm:rounded-lg">
           <ProfilePhotoImage
             alt={`${name}'s photo`}
-            className="block h-auto max-h-[70vh] w-full object-contain object-center sm:h-full sm:max-h-none"
-            height={0}
+            className="object-cover object-center"
+            fill
             priority={priority}
             sizes="(max-width: 639px) 640px, 112px"
             src={photoSrc}
-            width={0}
           />
         </div>
 
