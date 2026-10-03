@@ -17,23 +17,15 @@ function stripProfileViewFields(profile: ProfileResponse): ProfileResponse {
   return out as ProfileResponse;
 }
 
-/**
- * Attaches a bearer token when a session exists; returns empty headers otherwise. This
- * route is public — an anonymous visitor gets the redacted public view, not a 401 — so
- * unlike other API helpers in this app, having no token here is not an error.
- */
+// Adds the token if signed in. This route is public, so no token is fine here.
 async function optionalAuthHeader(): Promise<HeadersInit> {
   const session = await fetchAuthSession();
   const token = session.tokens?.idToken?.toString();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-/**
- * Loads another member's profile (or your own) for /profile/[userId]. Works for signed-out
- * visitors too — the backend route has no authorizer and returns the redacted public view.
- * Relies on Cache-Control from the API route for HTTP caching.
- * Pass `signal` from an AbortController so React Strict Mode / navigation can cancel the request.
- */
+// Loads a profile for /profile/[userId]. Works signed out too (you get the public view).
+// Pass `signal` so the request can be cancelled.
 export async function fetchProfileByUserId(
   userId: string,
   options?: { signal?: AbortSignal; noStore?: boolean },
@@ -42,9 +34,7 @@ export async function fetchProfileByUserId(
   const res = await fetch(`/api/profiles/${encodeURIComponent(userId)}`, {
     headers,
     signal: options?.signal,
-    // This route replies with a 3h Cache-Control for the normal browse/profile-page case,
-    // which is right for name/photos/bio but wrong for a caller that specifically wants a
-    // fresh online/last-seen status — opt out of the browser HTTP cache for that caller.
+    // Profiles are cached for 3h, too long for online status, so skip the cache here.
     cache: options?.noStore ? "no-store" : undefined,
   });
   if (!res.ok) {

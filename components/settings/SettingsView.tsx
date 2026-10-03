@@ -24,8 +24,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "account", label: "Account" },
 ];
 
-/** Same 3-column ad-rail layout as Home, shared by both the signed-out and signed-in
- * views below — ads must show regardless of auth state, same as Home. */
+// Same 3-column layout with ad rails as Home, for both signed-in and signed-out views.
 function SettingsAdLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-6">
@@ -146,8 +145,7 @@ export default function SettingsView() {
       <MobileDrawer isLoggedIn={isLoggedIn} open={menuOpen} onClose={() => setMenuOpen(false)} onLogout={signOut} />
 
       <div className="border-b border-pink-200 bg-white">
-        {/* Tighter padding on phones so all four tabs fit; overflow-x-auto is the fallback
-            on very narrow screens. */}
+        {/* Less padding on phones so all four tabs fit; scrolls on very narrow screens. */}
         <div className="mx-auto flex w-full max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6">
           {TABS.map((tab) => (
             <button

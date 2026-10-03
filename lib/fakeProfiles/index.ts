@@ -4,32 +4,21 @@ import { ageFromIsoDobUtc } from "@/lib/onboarding/validation";
 import fakeProfilesDataDev from "./data.dev.json";
 import fakeProfilesDataProd from "./data.prod.json";
 
-// Stored as `dob`, not `age` — age is derived at read time (ageFromIsoDobUtc below), same
-// as real profiles, so it doesn't freeze at whatever value it was when the data was
-// generated and quietly go stale as real time passes. The optional "about me" fields
-// (likes, heightCm, seekingAgeMin, …) are carried through as-is when present.
+// Stores dob, not age, so ages stay correct over time. About-me fields pass through as-is.
 type FakeProfileTemplate = Omit<SearchProfile, "lastSeen" | "age"> &
   Pick<ProfileResponse, "likes" | "ethnicity" | "race" | "bodyType" | "heightCm"> & { dob: string };
 type CountryEntry = { male: FakeProfileTemplate[]; female: FakeProfileTemplate[] };
 
-// `next build` (any deployed environment) sets NODE_ENV=production; only `next dev` is
-// "development" — so this is "local dev" vs. "everything built/deployed", not a specific
-// AWS backend stage. Both files start as identical copies (see scripts/generateFakeProfiles.mjs)
-// and are free to diverge by hand from here — e.g. trying out new bios in dev only.
+// Dev file under `next dev`, prod file for any build. They can differ, e.g. to try new bios
+// in dev first.
 const DATA = (
   process.env.NODE_ENV === "production" ? fakeProfilesDataProd : fakeProfilesDataDev
 ) as Record<string, CountryEntry>;
 
 /**
- * Fixed filler profiles (3-10 per gender per country, varied per country rather than a
- * uniform count — from lib/fakeProfiles/data.{dev,prod}.json, regenerate via
- * scripts/generateFakeProfiles.mjs, never computed at request time) shown alongside real
- * search results, always stamped as online right now.
- *
- * Rules: pick the profiles matching the requested gender for that country. If no city was
- * requested, return all of them. If a city was requested and any are assigned to it, return
- * only those; otherwise fall back to the full set (a specific-but-unmatched city still gets
- * filler, rather than none).
+ * Filler profiles shown alongside real search results, always marked online.
+ * Picks the country's profiles of the requested gender. With a city, returns only that
+ * city's profiles if there are any, otherwise all of them.
  */
 export function getMatchingFakeProfiles(
   country: string | null | undefined,
@@ -58,26 +47,21 @@ export function getMatchingFakeProfiles(
   }));
 }
 
-/** Fields computed at read time, shared by search results and the profile view. */
+// Fields worked out on each read, for search results and the profile page.
 function liveFields(dob: string, gender: "male" | "female") {
   return {
     age: ageFromIsoDobUtc(dob) ?? undefined,
     lastSeen: Date.now(),
     emailVerified: true,
-    // Same rule as the backend's seeded system users (backend/scripts/seedFakeUsers.js), so
-    // filler profiles show a "Looking for …" line like real ones do.
+    // Opposite gender, same as the seeded users in the backend.
     genderPreference: gender === "male" ? "female" : "male",
   };
 }
 
 let byUserId: Map<string, { template: FakeProfileTemplate; gender: "male" | "female" }> | null = null;
 
-/**
- * A fake profile by userId, shaped like the backend's public profile response — or null if
- * the id isn't a fake one. Lets the profile route answer fake ids locally instead of calling
- * the backend: the seeded DB rows share these same userIds, so it's the same profile either
- * way, and this JSON stays the single source of what fake profiles look like.
- */
+// Looks up a fake profile by id (null if it isn't one), shaped like the backend's public
+// profile. Lets the profile route answer fake ids without calling the backend.
 export function getFakeProfileById(userId: string): ProfileResponse | null {
   if (!byUserId) {
     byUserId = new Map();

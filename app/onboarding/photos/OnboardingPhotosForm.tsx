@@ -7,13 +7,17 @@ import { getCurrentUser } from "aws-amplify/auth";
 import SkipPhotosDialog from "@/components/onboarding/SkipPhotosDialog";
 import { configureAmplifyAuth } from "@/lib/amplify";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
-import { MAX_PROFILE_PHOTOS, prepareProfilePhotos } from "@/lib/imageUpload";
+import {
+  discardUnsavedPhotos,
+  MAX_PROFILE_PHOTOS,
+  prepareProfilePhotos,
+  uploadProfilePhoto,
+} from "@/lib/imageUpload";
 import {
   fetchMyProfile,
   getRedirectFromPhotosStep,
   ONBOARDING_QUERY,
   ONBOARDING_ROUTES,
-  presignUpload,
   updateMyProfile,
   validateImageFileBeforeProcessing,
   withOnboardingQuery,
@@ -30,7 +34,7 @@ export default function OnboardingPhotosForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  // Picked files, previewed locally — nothing touches S3 until submit (see saveWithPhotos).
+  // Picked files, previewed locally. Nothing uploads until submit.
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const previewUrlsRef = useRef<Set<string>>(new Set());
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
@@ -77,8 +81,7 @@ export default function OnboardingPhotosForm() {
     };
   }, [router]);
 
-  // Revoke any preview URLs still outstanding if the form unmounts before submit — read at
-  // cleanup time, not captured at setup, to catch whatever's actually outstanding then.
+  // Free any preview URLs left over if the form unmounts before submit.
   useEffect(() => {
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,8 +125,7 @@ export default function OnboardingPhotosForm() {
     });
   }
 
-  // A real 401 already triggered the session-expired toast (see clientError.ts); this
-  // just needs to skip the redundant inline error for that one case.
+  // Skip the inline error if the session-expired toast already showed.
   function handleSaveError(err: unknown, fallbackMessage: string) {
     if (!isSessionExpiredError(err)) {
       setError(err instanceof Error ? err.message : fallbackMessage);
@@ -146,32 +148,24 @@ export default function OnboardingPhotosForm() {
   async function saveWithPhotos() {
     setSaving(true);
     setError("");
+    // Outside the try so the catch can clean up what was uploaded.
+    const uploadedKeys: string[] = [];
+    let profileSaved = false;
     try {
-      // Upload happens here, at confirm time — nothing pending has touched S3 before this.
-      const jpegs = await prepareProfilePhotos(pendingPhotos.map((p) => p.file));
-      const uploadedKeys: string[] = [];
-      for (const jpeg of jpegs) {
-        const { uploadUrl, key } = await presignUpload();
-        const put = await fetch(uploadUrl, {
-          method: "PUT",
-          // Must match exactly what the presigned URL signed (see presignMedia's
-          // ServerSideEncryption: 'AES256') — S3 rejects the request with a signature
-          // mismatch otherwise, since this header is part of what was signed.
-          headers: { "Content-Type": "image/jpeg", "x-amz-server-side-encryption": "AES256" },
-          body: jpeg,
-        });
-        if (!put.ok) {
-          throw new Error("Upload failed. Try again.");
-        }
-        uploadedKeys.push(key);
+      // Photos only upload now, on confirm.
+      const prepared = await prepareProfilePhotos(pendingPhotos.map((p) => p.file));
+      for (const photo of prepared) {
+        uploadedKeys.push(await uploadProfilePhoto(photo));
       }
 
-      // Explicit — the backend only auto-derives this flag on the call where
-      // onboardingStatus first becomes "complete" (already happened in the profile step),
-      // so this call must say so itself or the user gets bounced back here forever.
+      // Set the flag explicitly. The backend only sets it when the profile first becomes
+      // complete, which already happened, so without this the user would loop back here.
       await updateMyProfile({ photos: uploadedKeys, onboardingPhotosPromptCompleted: true });
+      profileSaved = true;
       router.push("/");
     } catch (err) {
+      // Uploaded but never saved to the profile, so clean them up.
+      if (!profileSaved) void discardUnsavedPhotos(uploadedKeys);
       handleSaveError(err, "Could not save photos");
     } finally {
       setSaving(false);
@@ -248,7 +242,7 @@ export default function OnboardingPhotosForm() {
                 key={`pending-${p.previewUrl}`}
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  {/* Local blob preview — next/image can't optimize blob: URLs. */}
+                  {/* Local preview; next/image can't handle blob: URLs. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     alt={`Photo ${i + 1} preview`}

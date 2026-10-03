@@ -1,7 +1,5 @@
-/** Custom dropdown arrow for a `<select appearance-none>` — native arrows ignore padding
- * and always sit flush against the border in every browser, so this is the only reliable
- * way to control the spacing. Wrap the select in a `relative` container and place this
- * as a sibling. */
+// Our own arrow for <select appearance-none>, since native arrows ignore padding.
+// Put it next to the select inside a `relative` wrapper.
 export default function SelectChevron() {
   return (
     <svg

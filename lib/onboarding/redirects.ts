@@ -2,9 +2,7 @@ import { ONBOARDING_ROUTES } from "./constants";
 import { withOnboardingQuery } from "./routing";
 import type { ProfileResponse } from "./types";
 
-/**
- * If the user should leave the profile onboarding step, returns the path; otherwise `null`.
- */
+// Where to send the user if they shouldn't be on the profile step, otherwise null.
 export function getRedirectFromProfileStep(profile: ProfileResponse): string | null {
   if (profile.onboardingStatus === "complete") {
     if (profile.onboardingPhotosPromptCompleted !== false) {
@@ -15,11 +13,8 @@ export function getRedirectFromProfileStep(profile: ProfileResponse): string | n
   return null;
 }
 
-/**
- * If the user should leave the optional "about you" step, returns the path; otherwise `null`.
- * It's only reachable between finishing the profile step and finishing the photos step —
- * after onboarding, the same fields live in Settings → About me.
- */
+// Same for the about step, which only makes sense between the profile and photos steps.
+// After onboarding these fields are in Settings > About me.
 export function getRedirectFromAboutStep(profile: ProfileResponse): string | null {
   if (profile.onboardingStatus !== "complete") {
     return ONBOARDING_ROUTES.profile;
@@ -30,9 +25,7 @@ export function getRedirectFromAboutStep(profile: ProfileResponse): string | nul
   return null;
 }
 
-/**
- * If the user should leave the photos onboarding step, returns the path; otherwise `null`.
- */
+// Same for the photos step.
 export function getRedirectFromPhotosStep(profile: ProfileResponse): string | null {
   if (profile.onboardingStatus === "signup_stub" || profile.onboardingStatus !== "complete") {
     return ONBOARDING_ROUTES.profile;

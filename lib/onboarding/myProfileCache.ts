@@ -1,7 +1,7 @@
 import type { ProfileResponse } from "./types";
 
 const CACHE_KEY = "matchmate.myProfile.cache";
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes — own-account edits bypass this entirely (see setMyProfileCache)
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes; your own edits update it right away
 
 type CachedEntry = { profile: ProfileResponse; at: number };
 
@@ -19,23 +19,18 @@ function readLocalStorageCache(): CachedEntry | null {
   }
 }
 
-/**
- * Seeds the cache with a known-fresh profile — call this with the result of any write
- * (updateMyProfile, email verification, etc.) so the change is reflected everywhere that
- * reads fetchMyProfileCached() immediately, without waiting out the TTL or spending an
- * extra request to re-fetch what was just returned anyway.
- */
+// Call with the result of any profile write so the change shows everywhere right away.
 export function setMyProfileCache(profile: ProfileResponse): void {
   const entry: CachedEntry = { profile, at: Date.now() };
   memoryCache = entry;
   try {
     window.localStorage.setItem(CACHE_KEY, JSON.stringify(entry));
   } catch {
-    /* private browsing / storage disabled — memory cache still covers this tab */
+    /* storage unavailable, the memory cache still works for this tab */
   }
 }
 
-/** Forces the next fetchMyProfileCached() call to hit the network, discarding any cached value. */
+// Clears the cache so the next read fetches fresh.
 export function clearMyProfileCache(): void {
   memoryCache = null;
   try {
@@ -46,10 +41,8 @@ export function clearMyProfileCache(): void {
 }
 
 /**
- * The cached profile, if one exists and is still within the TTL — null otherwise (no fetch).
- * Pass `forUserId` (the signed-in user's sub) to only get a hit if the cache belongs to that
- * user: the cache lives in localStorage, so after signing out and in as someone else it could
- * otherwise serve the previous account's profile.
+ * The cached profile if it's still fresh, otherwise null. Pass forUserId so you never get
+ * another account's profile after switching users.
  */
 export function getCachedProfileIfFresh(forUserId?: string): ProfileResponse | null {
   const cached = memoryCache ?? readLocalStorageCache();

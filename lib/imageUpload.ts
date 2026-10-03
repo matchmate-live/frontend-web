@@ -1,7 +1,9 @@
 import { findPhotoIssue, type PhotoIssue } from "@/lib/photoModeration";
+import { deleteUploadedPhoto, fetchMyProfile, presignUpload } from "@/lib/onboarding/profileApi";
+import { PHOTO_THUMB_MAX_PX } from "@/lib/profilePhoto";
 
-/** Completes "Photo N …" / "This photo …". Deliberately says nothing about scores or
- * thresholds — that would just help someone tune a photo to slip under them. */
+// Ends "Photo N ..." / "This photo ...". No scores or thresholds, so nobody can tune a
+// photo to slip through.
 const PHOTO_ISSUE_MESSAGES: Record<PhotoIssue, string> = {
   explicit:
     "appears to contain nudity or sexual content, which isn't allowed. Please remove it and choose another.",
@@ -11,67 +13,113 @@ const PHOTO_ISSUE_MESSAGES: Record<PhotoIssue, string> = {
 
 export const MAX_PROFILE_PHOTOS = 5;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-/** Longest-edge cap, in px, applied before upload. Profile photos are never displayed
- * wider than this anywhere in the app (the desktop carousel banner tops out well under
- * it), so anything larger is resolution nobody sees — just extra upload time, storage, and
- * CDN transfer cost. */
+// Max longest edge before upload. Photos are never shown bigger than this, so more pixels
+// would only cost upload time and storage.
 export const MAX_IMAGE_DIMENSION = 1600;
-/** 0.92 (the old default) is well past the point of visible difference for photographic
- * content — 0.8 is the standard "web photo" sweet spot: no perceptible quality loss at
- * normal viewing sizes, but meaningfully smaller files (often 30-50% less than 0.92 for
- * the same image), which is what actually drives S3 storage + CDN transfer cost down. */
+// 0.8 looks the same as higher settings for photos but makes files 30-50% smaller.
 const JPEG_QUALITY = 0.8;
 
-/** Ensure JPEG under size cap for Cognito/S3 presign (image/jpeg), downscaled to MAX_IMAGE_DIMENSION. */
-export async function fileToJpegBlob(file: File): Promise<Blob> {
-  if (file.size > MAX_IMAGE_BYTES) {
-    throw new Error("Each image must be 5 MB or smaller.");
-  }
-  const img = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(img.width, img.height));
-  const width = Math.round(img.width * scale);
-  const height = Math.round(img.height * scale);
+// At 400px this looks fine and keeps thumbnails around 15-30 KB.
+const THUMB_JPEG_QUALITY = 0.75;
 
-  // Already JPEG and no resize needed — nothing to gain from re-encoding.
-  if (file.type === "image/jpeg" && scale === 1) {
-    return file;
-  }
-
+// Scales the image down to fit maxDimension (never up) and saves it as JPEG.
+async function resizeToJpeg(source: Blob, maxDimension: number, quality: number): Promise<Blob> {
+  const img = await createImageBitmap(source);
+  const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     throw new Error("Could not process this image.");
   }
-  ctx.drawImage(img, 0, 0, width, height);
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY),
-  );
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
   if (!blob) {
     throw new Error("Could not convert image to JPEG.");
   }
+  return blob;
+}
+
+// Returns a JPEG no bigger than MAX_IMAGE_DIMENSION and under the size limit.
+export async function fileToJpegBlob(file: File): Promise<Blob> {
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new Error("Each image must be 5 MB or smaller.");
+  }
+  // Already a small enough JPEG, use it as-is.
+  if (file.type === "image/jpeg") {
+    const { width, height } = await createImageBitmap(file);
+    if (Math.max(width, height) <= MAX_IMAGE_DIMENSION) return file;
+  }
+  const blob = await resizeToJpeg(file, MAX_IMAGE_DIMENSION, JPEG_QUALITY);
   if (blob.size > MAX_IMAGE_BYTES) {
     throw new Error("Image is still larger than 5 MB after compression. Try a smaller photo.");
   }
   return blob;
 }
 
-/** Convert and moderation-check every photo up front, so a rejected photo is caught
- * before any of the batch reaches S3 (no half-uploaded batches / orphaned objects).
- * `precedingPhotoCount` is how many photos the UI shows before these (e.g. already-saved
- * ones), so the error's "Photo N" matches the position the user actually sees. */
-export async function prepareProfilePhotos(files: File[], precedingPhotoCount = 0): Promise<Blob[]> {
-  const jpegs: Blob[] = [];
+// A photo ready to upload, with its thumbnail.
+export type PreparedPhoto = { full: Blob; thumb: Blob };
+
+/**
+ * Converts and checks every photo before anything uploads, so a rejected photo stops the
+ * whole batch. precedingPhotoCount is how many photos are shown before these, so "Photo N"
+ * in the error matches what the user sees.
+ */
+export async function prepareProfilePhotos(files: File[], precedingPhotoCount = 0): Promise<PreparedPhoto[]> {
+  const prepared: PreparedPhoto[] = [];
   for (const [i, file] of files.entries()) {
-    const jpeg = await fileToJpegBlob(file);
-    const issue = await findPhotoIssue(jpeg);
+    const full = await fileToJpegBlob(file);
+    const issue = await findPhotoIssue(full);
     if (issue) {
       const which =
         files.length + precedingPhotoCount > 1 ? `Photo ${precedingPhotoCount + i + 1}` : "This photo";
       throw new Error(`${which} ${PHOTO_ISSUE_MESSAGES[issue]}`);
     }
-    jpegs.push(jpeg);
+    const thumb = await resizeToJpeg(full, PHOTO_THUMB_MAX_PX, THUMB_JPEG_QUALITY);
+    prepared.push({ full, thumb });
   }
-  return jpegs;
+  return prepared;
+}
+
+// Must match what presignMedia signed, or S3 rejects the upload.
+const UPLOAD_HEADERS = {
+  "Content-Type": "image/jpeg",
+  "x-amz-server-side-encryption": "AES256",
+  "Cache-Control": "public, max-age=31536000, immutable",
+};
+
+// Uploads a photo and its thumbnail. Returns the photo key to save on the profile.
+export async function uploadProfilePhoto(photo: PreparedPhoto): Promise<string> {
+  const { uploadUrl, key, thumbUploadUrl } = await presignUpload();
+  const [put, thumbPut] = await Promise.all([
+    fetch(uploadUrl, { method: "PUT", headers: UPLOAD_HEADERS, body: photo.full }),
+    // Older backend without thumbnails (e.g. mid-deploy), skip it.
+    thumbUploadUrl
+      ? fetch(thumbUploadUrl, { method: "PUT", headers: UPLOAD_HEADERS, body: photo.thumb })
+      : null,
+  ]);
+  // Without a thumbnail the full photo is shown instead, so only the main upload must succeed.
+  if (!put.ok) throw new Error("Photo upload failed. Try again.");
+  if (thumbPut && !thumbPut.ok) console.warn("Thumbnail upload failed; the full photo will be used instead.");
+  return key;
+}
+
+/**
+ * Cleans up photos uploaded for a save that then failed, so they don't sit in S3 unused.
+ * Re-reads the profile first and only deletes photos it doesn't use: the save may have
+ * worked on the server even though we got an error. If the profile can't be read, nothing
+ * is deleted. Best effort, never throws.
+ */
+export async function discardUnsavedPhotos(uploadedKeys: string[]): Promise<void> {
+  if (uploadedKeys.length === 0) return;
+  try {
+    const profile = await fetchMyProfile();
+    const referenced = new Set(profile?.photos ?? []);
+    await Promise.all(
+      uploadedKeys.filter((key) => !referenced.has(key)).map((key) => deleteUploadedPhoto(key).catch(() => {})),
+    );
+  } catch {
+    // Can't tell what the profile uses, so leave the files alone.
+  }
 }

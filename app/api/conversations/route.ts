@@ -4,7 +4,7 @@ import { forwardJsonResponse } from "@/lib/api/proxy";
 
 export const runtime = "nodejs";
 
-/** Requires a real bearer token — unlike profile viewing, your conversation list is never public. */
+// Requires a signed-in user; conversations are never public.
 export async function GET(request: NextRequest) {
   const apiBaseUrl = serverEnv("API_BASE_URL");
   if (!apiBaseUrl) {

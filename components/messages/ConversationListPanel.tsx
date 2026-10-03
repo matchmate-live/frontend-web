@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ProfilePhotoImage from "@/components/ui/ProfilePhotoImage";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 import { formatLastSeenStatus } from "@/lib/profileSearchDisplay";
 import type { ConversationSummary } from "@/lib/messaging/types";
@@ -37,9 +37,9 @@ type ConversationListPanelProps = {
   loadingMore: boolean;
   onSelect: (otherUserId: string) => void;
   onLoadMore: () => void;
-  /** One screen at a time, on every viewport — hidden once a thread is open, visible again via the thread's back button. */
+  /** Hidden while a chat is open (one screen at a time). */
   hidden: boolean;
-  /** conversationId a live push just moved to the top of the list — briefly highlighted so it's noticeable. */
+  /** Conversation that just moved to the top; briefly highlighted. */
   highlightedConversationId: string | null;
 };
 
@@ -109,7 +109,7 @@ export default function ConversationListPanel({
                   >
                     <div className="relative h-11 w-11 shrink-0">
                       <div className="absolute inset-0 overflow-hidden rounded-full bg-pink-50/90">
-                        <Image
+                        <ProfilePhotoImage
                           alt={`${name}'s photo`}
                           className="object-cover"
                           fill

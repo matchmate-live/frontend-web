@@ -1,20 +1,18 @@
 import City from "country-state-city/lib/city";
 import Country from "country-state-city/lib/country";
 
-/** Cap per country — some (e.g. US, IN) have tens of thousands of entries, far more than a
- * <select> can usefully show. */
+// Some countries have tens of thousands of cities, far too many for a dropdown.
 const MAX_CITY_OPTIONS = 1000;
 
-// The city dataset is ~8 MB, so it lives here instead of in the client bundle. Every
-// country's list is prerendered at build time and served as a static file (no function
-// invocation); unknown codes 404 rather than rendering on demand.
+// The city data is about 8 MB, so it stays out of the browser bundle. Each country's list
+// is built at build time and served as a static file; unknown codes return 404.
 export const dynamicParams = false;
 
 export function generateStaticParams() {
   return Country.getAllCountries().map((country) => ({ isoCode: country.isoCode }));
 }
 
-/** Lowercase, de-duplicated, sorted city names for one country (by ISO code). */
+// Sorted, lowercase, de-duplicated city names for one country.
 export async function GET(_request: Request, { params }: RouteContext<"/api/geo/cities/[isoCode]">) {
   const { isoCode } = await params;
   const rawCities = City.getCitiesOfCountry(isoCode) ?? [];

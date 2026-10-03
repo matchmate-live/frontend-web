@@ -16,7 +16,7 @@ type AboutTabProps = {
   onSaved: (updated: ProfileResponse) => void;
 };
 
-/** Optional details (likes, height, …) — kept apart from ProfileTab so each saves on its own. */
+// About-me details. Separate from ProfileTab so each saves on its own.
 export default function AboutTab({ profile, onSaved }: AboutTabProps) {
   const [details, setDetails] = useState(() => profileDetailsFromProfile(profile));
   const [detailErrors, setDetailErrors] = useState<ProfileDetailsErrors>({});
@@ -24,8 +24,7 @@ export default function AboutTab({ profile, onSaved }: AboutTabProps) {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  // Compared as payloads so e.g. "170" vs " 170" or an emptied field vs an absent one
-  // don't count as changes.
+  // Compare the cleaned-up values so things like extra spaces don't count as changes.
   const isDirty =
     JSON.stringify(profileDetailsToPayload(details)) !==
     JSON.stringify(profileDetailsToPayload(profileDetailsFromProfile(profile)));

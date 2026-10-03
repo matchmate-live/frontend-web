@@ -57,9 +57,7 @@ export default function PublicProfilePage() {
   const router = useRouter();
 
   function handleBack() {
-    // history.length > 1 means there's actually somewhere to go back to (e.g. search
-    // results, messages, another profile) — falls back to "/" for a profile opened
-    // directly, such as from a shared link or a new tab.
+    // Go back if there's history, otherwise (opened from a link or new tab) go home.
     if (typeof window !== "undefined" && window.history.length > 1) {
       router.back();
     } else {
@@ -68,10 +66,9 @@ export default function PublicProfilePage() {
   }
 
   useEffect(() => {
-    // Public page: anyone can view a profile, signed in or not (the backend returns a
-    // redacted view for anonymous/other viewers). Only "Send message" is gated on isLoggedIn.
+    // Public page. Only "Send message" needs the user to be signed in.
     if (!userId?.trim()) {
-      // Deferred to a microtask — avoids a same-tick cascading render (same as AuthProvider).
+      // Deferred to avoid a cascading render.
       Promise.resolve().then(() => {
         setLoading(false);
         setError("Missing profile id.");
@@ -89,8 +86,7 @@ export default function PublicProfilePage() {
       })
       .catch((e: unknown) => {
         if (ac.signal.aborted) return;
-        // Never redirects on its own. A real 401 already triggered the session-expired
-        // toast (see clientError.ts); this just skips the redundant inline error.
+        // No redirect. Skip the inline error if the session-expired toast already showed.
         if (!isSessionExpiredError(e)) {
           setError(e instanceof Error ? e.message : "Could not load profile.");
         }
@@ -128,7 +124,7 @@ export default function PublicProfilePage() {
         <div className="grid flex-1 items-stretch gap-0 lg:grid-cols-[280px_minmax(0,1fr)_280px] lg:gap-6">
           <AdRail slot={ADS_SLOTS.profileA} />
 
-          {/* Full-screen-style profile column (not a card) */}
+          {/* Profile column (full height, not a card) */}
           <div className="flex min-h-0 min-h-[calc(100dvh-3.5rem)] flex-1 flex-col bg-white lg:min-h-[calc(100vh-7rem)]">
             <div className="border-b border-pink-100 px-4 py-3 sm:px-6">
               <BackButton label="Back" onClick={handleBack} />

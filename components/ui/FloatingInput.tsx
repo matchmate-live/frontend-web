@@ -7,7 +7,7 @@ type FloatingInputProps = {
   onChange: (value: string) => void;
   onBlur?: () => void;
   required?: boolean;
-  /** For `type="date"`, ISO YYYY-MM-DD bounds (browser-native constraint). */
+  /** Date bounds (YYYY-MM-DD) for type="date". */
   min?: string;
   max?: string;
   startAdornment?: React.ReactNode;

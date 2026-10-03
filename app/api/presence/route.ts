@@ -4,7 +4,7 @@ import { forwardJsonResponse } from "@/lib/api/proxy";
 
 export const runtime = "nodejs";
 
-/** POST "I'm active" → backend POST /presence (refreshes lastSeen). See lib/presence.ts. */
+// Forwards the "I'm active" ping to the backend (see lib/presence.ts).
 export async function POST(request: NextRequest) {
   const apiBaseUrl = serverEnv("API_BASE_URL");
   if (!apiBaseUrl) {

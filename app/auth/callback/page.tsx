@@ -2,23 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-// signInWithRedirect is never called here — this import just pulls its module into this
-// page's bundle. Amplify registers the listener that completes a pending OAuth exchange as
-// a side effect of loading that module, and nothing else in the Auth package imports it.
-// This page loads via a separate bundle (Google's cross-origin redirect) that previously
-// never pulled that module in, so the listener was never registered and completion could
-// never fire, no matter how long the page waited.
+// signInWithRedirect isn't called here; importing it registers the listener that finishes
+// the Google sign-in. Without this import that listener never loads on this page and
+// sign-in hangs.
 import { fetchAuthSession, signInWithRedirect } from "aws-amplify/auth";
 void signInWithRedirect;
 import { configureAmplifyAuth, resetAmplifyAuthState } from "@/lib/amplify";
 import { fetchMyProfile, getPostAuthRedirectPath, withOnboardingQuery } from "@/lib/onboarding";
 
-// Amplify completes the OAuth exchange asynchronously after mount; poll instead of timing
-// a single check exactly right.
+// Amplify finishes the sign-in in the background, so poll for it.
 const POLL_INTERVAL_MS = 400;
 const POLL_TIMEOUT_MS = 8000;
 
-// Manual way out if nothing resolves by the time polling gives up.
+// Fallback link if polling gives up.
 const RECOVERY_DELAY_MS = 8500;
 
 export default function AuthCallbackPage() {
@@ -29,7 +25,7 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     if (!isConfigured) {
-      // Deferred to a microtask — avoids a same-tick cascading render (same as AuthProvider).
+      // Deferred to avoid a cascading render.
       Promise.resolve().then(() => setStatus("Missing Cognito env values. Configure .env.local first."));
       return;
     }

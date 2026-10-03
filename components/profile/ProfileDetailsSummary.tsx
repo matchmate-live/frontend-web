@@ -9,7 +9,7 @@ import {
   optionLabel,
 } from "@/lib/profileDetails";
 
-/** Read-only view of the optional details on a profile page. Renders nothing if none are set. */
+// The about-me details on a profile page. Shows nothing if none are set.
 export default function ProfileDetailsSummary({ profile }: { profile: ProfileResponse }) {
   const rows = [
     { label: "Height", value: profile.heightCm != null ? formatHeight(profile.heightCm) : undefined },
@@ -19,7 +19,7 @@ export default function ProfileDetailsSummary({ profile }: { profile: ProfileRes
     { label: "Looking for someone aged", value: formatSeekingAgeRange(profile.seekingAgeMin, profile.seekingAgeMax) },
   ].filter((row): row is { label: string; value: string } => Boolean(row.value));
 
-  // Unknown keys (e.g. an option since removed from the list) are skipped rather than shown raw.
+  // Skip values we don't recognise (e.g. a removed option).
   const likes = (profile.likes ?? [])
     .map((like) => optionLabel(LIKE_OPTIONS, like))
     .filter((label): label is string => Boolean(label));

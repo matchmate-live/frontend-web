@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ProfilePhotoImage from "@/components/ui/ProfilePhotoImage";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
@@ -20,7 +20,7 @@ const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
 type ProfileCardProps = {
   profile: SearchProfile;
-  /** Pass true only for the first card actually above the fold — see ProfilesGrid. */
+  /** Only true for the first card on screen (see ProfilesGrid). */
   priority?: boolean;
 };
 
@@ -38,7 +38,7 @@ function displayGender(profile: SearchProfile): string {
   return "—";
 }
 
-/** City and country for the location line (right side). */
+// "City, Country" for the location line.
 function displayCityCountry(profile: SearchProfile): string {
   const fromLoc = parseLocationGender(profile.locationGender);
   if (fromLoc) {
@@ -77,12 +77,12 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
     <article className="w-full overflow-hidden rounded-xl border border-pink-200 bg-white shadow-sm sm:p-4">
       <div className="flex w-full min-w-0 flex-col sm:flex-row sm:items-stretch sm:gap-4">
         <div className="flex w-full min-w-0 shrink-0 items-center justify-center overflow-hidden bg-pink-50/90 sm:h-28 sm:w-28 sm:rounded-lg">
-          <Image
+          <ProfilePhotoImage
             alt={`${name}'s photo`}
             className="block h-auto max-h-[70vh] w-full object-contain object-center sm:h-full sm:max-h-none"
             height={0}
             priority={priority}
-            sizes="(max-width: 639px) 100vw, 112px"
+            sizes="(max-width: 639px) 640px, 112px"
             src={photoSrc}
             width={0}
           />

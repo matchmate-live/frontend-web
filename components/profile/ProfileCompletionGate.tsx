@@ -10,21 +10,19 @@ import {
   withOnboardingQuery,
 } from "@/lib/onboarding";
 
-// Renders immediately and redirects in the background if needed, instead of
-// blocking every page load on this check (a no-op for most visitors).
+// Renders right away and redirects in the background if needed, so pages don't wait on it.
 export default function ProfileCompletionGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { loading, isLoggedIn } = useAuth();
 
   useEffect(() => {
-    if (loading) return; // wait for the shared auth check to resolve
-    if (!isLoggedIn) return; // anonymous visitor — nothing to gate
+    if (loading) return; // wait for the auth check
+    if (!isLoggedIn) return; // signed out, nothing to check
     if (shouldSkipProfileGate(pathname)) return;
-    // On the search screen, search params only appear after a search already ran this
-    // session — so their presence means the profile was already checked; skip re-checking
-    // on every return trip to "/". Reads window.location directly, not useSearchParams(),
-    // since this wraps every route and shouldn't force a Suspense boundary app-wide.
+    // Filters in the home URL mean a search already ran, so the profile was already checked.
+    // Reads window.location rather than useSearchParams() to avoid a Suspense boundary on
+    // every page.
     if (pathname === "/" && typeof window !== "undefined" && window.location.search) return;
 
     let cancelled = false;
@@ -38,7 +36,7 @@ export default function ProfileCompletionGate({ children }: { children: React.Re
           router.replace(withOnboardingQuery(next));
         }
       } catch {
-        // Couldn't load the profile (network blip, etc.) — don't redirect on a guess.
+        // Couldn't load the profile, so don't redirect on a guess.
       }
     })();
 
