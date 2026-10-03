@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ProfileCompletionGate from "@/components/profile/ProfileCompletionGate";
 import MessageNotifications from "@/components/messages/MessageNotifications";
+import PresenceTracker from "@/components/PresenceTracker";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { ToastProvider } from "@/lib/toast/ToastProvider";
 import { MessagingProvider } from "@/lib/messaging/MessagingProvider";
@@ -104,6 +105,7 @@ export default function RootLayout({
         ) : null}
         <ToastProvider>
           <AuthProvider>
+            <PresenceTracker />
             <MessagingProvider>
               <MessageNotifications />
               <ProfileCompletionGate>{children}</ProfileCompletionGate>
