@@ -1,19 +1,18 @@
 import type { NSFWJS } from "nsfwjs/core";
 
-/** Combined Porn + Hentai probability at or above which a photo is rejected as explicit. */
+// Porn + Hentai score at which a photo counts as explicit.
 const EXPLICIT_THRESHOLD = 0.6;
-/** "Sexy" also covers swimwear/lingerie, so only reject when the model is very sure —
- * lower this if suggestive photos become a problem, raise it if users hit false positives. */
+// "Sexy" also catches swimwear, so only reject when the model is very sure. Lower it if
+// suggestive photos get through, raise it if normal photos get rejected.
 const SUGGESTIVE_THRESHOLD = 0.95;
 
-/** "explicit" = nudity / sexual content (incl. drawn); "suggestive" = too revealing. */
+// explicit: nudity or sexual content. suggestive: too revealing.
 export type PhotoIssue = "explicit" | "suggestive";
 
 let modelPromise: Promise<NSFWJS> | null = null;
 
-/** Loaded lazily (and only once per page) — TensorFlow.js + the bundled MobileNetV2 model
- * are a few MB, so nothing is downloaded until someone actually saves photos. Only the
- * smallest model is registered via `nsfwjs/core` so the other two aren't bundled. */
+// The model is a few MB, so it's only loaded the first time someone saves photos.
+// Only the smallest model is included.
 function loadModel(): Promise<NSFWJS> {
   if (!modelPromise) {
     modelPromise = (async () => {
@@ -23,7 +22,7 @@ function loadModel(): Promise<NSFWJS> {
       ]);
       return load("MobileNetV2", { modelDefinitions: [MobileNetV2Model] });
     })();
-    // Let a later call retry instead of caching the failure forever.
+    // Don't cache a failed load, let the next call retry.
     modelPromise.catch(() => {
       modelPromise = null;
     });
@@ -32,15 +31,10 @@ function loadModel(): Promise<NSFWJS> {
 }
 
 /**
- * Client-side screen for explicit photos, run before anything is uploaded. This is a
- * first line of defence for honest users, not enforcement — anyone can bypass browser
- * code and PUT to the presigned URL directly, so user reports / admin review still matter.
- *
- * Fails open: if the model can't load or run (old browser, no WebGL and slow CPU fallback
- * erroring, etc.) the photo is allowed rather than blocking legitimate uploads.
- *
- * Returns why the photo was rejected, or null if it's fine. The model only scores whole-image
- * categories, so this is as specific as it can get — it can't say *what* in the photo is wrong.
+ * Checks a photo for explicit content before upload. Returns the reason it's rejected,
+ * or null if it's fine.
+ * This runs in the browser, so it can be bypassed; reports and review still matter.
+ * If the model can't load or run, the photo is allowed.
  */
 export async function findPhotoIssue(image: Blob): Promise<PhotoIssue | null> {
   let bitmap: ImageBitmap | null = null;
@@ -58,7 +52,7 @@ export async function findPhotoIssue(image: Blob): Promise<PhotoIssue | null> {
     const score = (name: string) =>
       predictions.find((p) => p.className === name)?.probability ?? 0;
 
-    // Explicit is checked first: a photo that trips both should get the stronger reason.
+    // Check explicit first so the stronger reason wins.
     if (score("Porn") + score("Hentai") >= EXPLICIT_THRESHOLD) return "explicit";
     if (score("Sexy") >= SUGGESTIVE_THRESHOLD) return "suggestive";
     return null;

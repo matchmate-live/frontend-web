@@ -27,7 +27,7 @@ import ProfilesGrid from "@/components/home/ProfilesGrid";
 import ProfileCardSkeleton from "@/components/home/ProfileCardSkeleton";
 import EmailVerificationBanner from "@/components/home/EmailVerificationBanner";
 
-/** Reconstructs filters from `?country=...&city=...&gender=...&minAge=...&maxAge=...`, or null if unset. */
+// Reads filters from the URL query, or null if there's no country.
 function filtersFromParams(params: URLSearchParams): FilterState | null {
   const country = params.get("country");
   if (!country) return null;
@@ -84,11 +84,8 @@ export default function HomeClient() {
   const countries = useMemo(() => getCountryOptions(), []);
   const cityOptions = useCityOptions(draftFilters.country);
 
-  /**
-   * Shared control flow for a fresh search and "load more": cancels any in-flight request
-   * first (so a slower, older response can't overwrite a newer one), then routes the
-   * result through whichever callbacks the caller wants.
-   */
+  // Used by both a new search and "load more". Cancels any request in flight first so an
+  // older, slower response can't overwrite a newer one.
   async function performSearch(
     nextFilters: FilterState,
     {
@@ -151,22 +148,16 @@ export default function HomeClient() {
     });
   }
 
-  /** window.location.search as of the last render this component accounted for (wrote via
-   * syncFiltersToUrl, or read via the render-time sync below) — lets that check tell "we
-   * just wrote this" from "a back/forward navigation changed the URL". */
+  // The last query string we wrote or handled, so we can tell our own URL updates apart
+  // from back/forward navigation.
   const [lastSeenSearch, setLastSeenSearch] = useState<string | null>(null);
 
-  /** Reflects filters into the URL query string (replace, not push — no history spam per
-   * keystroke/filter tweak) so browser back-navigation from a profile or another page
-   * restores this exact search instead of resetting to a fresh auto-detected one.
-   *
-   * Native history.replaceState, not router.replace(): router.replace() is a full soft
-   * navigation that refetches the route from the server and only updates the address bar
-   * once that completes — on slower mobile connections the URL visibly lagged or never
-   * changed. The filters live in client state and the search is its own API call, so no
-   * server round trip is needed; Next.js integrates replaceState with its router, so
-   * usePathname/useSearchParams stay in sync. It also updates window.location
-   * synchronously, so the render-time sync below sees the new query straight away. */
+  /**
+   * Puts the filters in the URL so going back from a profile restores the same search.
+   * Uses replaceState rather than router.replace(): router.replace() refetches the page
+   * from the server first, and on slow mobile connections the URL lagged or never updated.
+   * Next.js keeps its router in sync with replaceState.
+   */
   function syncFiltersToUrl(f: FilterState) {
     const params = new URLSearchParams({
       country: f.country,
@@ -210,13 +201,10 @@ export default function HomeClient() {
     };
   }, []);
 
-  /** Only ever called from requestLocationAndSearch, which only runs for the very first,
-   * no-URL-params auto-search — filters still hold the initial useState defaults at that
-   * point, so it's always safe to resolve and override gender and ages here.
-   *
-   * Signed-in users get their own profile preferences: genderPreference, and the "looking
-   * for" age range, with whichever end isn't set falling back to DEFAULT_MIN_AGE /
-   * DEFAULT_MAX_AGE. */
+  /**
+   * Gender and ages for the first automatic search (no filters in the URL).
+   * Signed-in users get their own preferences; any missing age falls back to the default.
+   */
   async function resolveDefaultSearchPrefs(): Promise<Pick<FilterState, "gender" | "minAge" | "maxAge">> {
     const anonymous = { gender: DEFAULT_ANON_GENDER, minAge: DEFAULT_MIN_AGE, maxAge: DEFAULT_MAX_AGE } as const;
     if (!isLoggedIn) return anonymous;
@@ -262,8 +250,7 @@ export default function HomeClient() {
 
           const normalizedCountry = geo.country.toLowerCase();
           const normalizedCity = geo.city?.toLowerCase();
-          // Only applied if it's actually one of this country's dropdown options —
-          // reverse-geocoded names don't reliably match this dataset's own naming.
+          // Only use the city if it's in our list; geocoded names don't always match.
           const cityOptionsForCountry = await fetchCityOptions(normalizedCountry);
           const validatedCity =
             normalizedCity && cityOptionsForCountry.includes(normalizedCity) ? normalizedCity : "";
@@ -306,9 +293,8 @@ export default function HomeClient() {
     }
   }
 
-  // The first sync must happen in an effect, not during render: SSR always renders the
-  // default state (no window there), so the first client render has to match it exactly
-  // or React flags a hydration mismatch.
+  // The first sync runs in an effect so the first render matches the server (no hydration
+  // mismatch).
   const hasHydratedRef = useRef(false);
   useEffect(() => {
     hasHydratedRef.current = true;
@@ -316,19 +302,13 @@ export default function HomeClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Render-time URL sync for every render after hydration — deliberately not effect-
-  // triggered. Two effect-based attempts (useSearchParams(), then a popstate listener)
-  // both proved unreliable for catching back/forward navigation to this page. Checking
-  // window.location.search during render instead can't be missed, since the component
-  // must render for the user to see anything. hasHydratedRef excludes the first render.
+  // After that, check the URL on every render. Effects (useSearchParams, popstate) missed
+  // some back/forward navigations; a render check can't.
   if (hasHydratedRef.current) {
     syncFromLocation();
   }
 
-  // handledFetchRef survives React Strict Mode's dev-only double-invocation of this effect
-  // (setPendingFetch(null) alone doesn't: state updates are deferred, so a second immediate
-  // invocation would still see the same truthy pendingFetch and fire the search twice). A
-  // ref updates synchronously, so it's visible to that second invocation right away.
+  // A ref, not just state, so Strict Mode's double effect run doesn't search twice.
   const handledFetchRef = useRef<typeof pendingFetch>(null);
   useEffect(() => {
     if (!pendingFetch || handledFetchRef.current === pendingFetch) return;
@@ -396,7 +376,7 @@ export default function HomeClient() {
               />
             ) : null}
 
-            {/* Always shown, regardless of search loading state — an ad shouldn't wait on the request. */}
+            {/* Always shown, even while results load. */}
             <div className="mt-6 lg:hidden">
               <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
                 <p className="mb-2 text-xs text-zinc-500">Sponsored</p>

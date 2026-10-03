@@ -30,7 +30,7 @@ export type MessagesResponse = {
   nextToken: string | null;
 };
 
-/** Real-time push from the server over the WebSocket — someone else's message arriving live. */
+// An incoming message pushed over the WebSocket.
 export type IncomingMessagePush = {
   type: "message";
   messageId: string;
@@ -41,7 +41,7 @@ export type IncomingMessagePush = {
   message: string;
 };
 
-/** Response to this connection's own `sendMessage` call, delivered back over the same socket. */
+// Confirmation for a message you sent.
 export type SendMessageAck = {
   ok: boolean;
   message?: Message;

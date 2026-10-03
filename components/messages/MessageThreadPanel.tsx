@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ProfilePhotoImage from "@/components/ui/ProfilePhotoImage";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import BackButton from "@/components/ui/BackButton";
@@ -61,7 +61,7 @@ type MessageThreadPanelProps = {
   onLoadOlder: () => void;
   onSend: (text: string) => void;
   onBack: () => void;
-  /** One screen at a time, on every viewport — hidden until a conversation is selected. */
+  /** Hidden until a conversation is picked (one screen at a time). */
   hidden: boolean;
 };
 
@@ -114,7 +114,7 @@ export default function MessageThreadPanel({
         <BackButton onClick={onBack} />
         <Link className="flex min-w-0 items-center gap-3" href={`/profile/${encodeURIComponent(activeUserId)}`}>
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-pink-50/90">
-            <Image alt={`${partnerName}'s photo`} className="object-cover" fill sizes="36px" src={profilePhotoSrc(partnerProfile?.photos?.[0])} />
+            <ProfilePhotoImage alt={`${partnerName}'s photo`} className="object-cover" fill sizes="36px" src={profilePhotoSrc(partnerProfile?.photos?.[0])} />
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-zinc-900 hover:underline">{partnerName}</p>

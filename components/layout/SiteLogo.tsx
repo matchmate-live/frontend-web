@@ -4,9 +4,9 @@ import Logo from "@/icons/logo.svg";
 type SiteLogoProps = {
   /** Icon box size, e.g. "h-6 w-6" or "h-7 w-7". */
   iconClassName?: string;
-  /** Controls display (flex/hidden/sm:flex etc.), text size, and any extra spacing/alignment. */
+  /** Display, text size and spacing classes. */
   className?: string;
-  /** Renders as a link to "/" when provided; otherwise static text (e.g. inside a drawer header). */
+  /** Link to "/" when set, plain text otherwise. */
   href?: string;
 };
 

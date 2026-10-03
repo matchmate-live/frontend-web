@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ProfilePhotoImage from "@/components/ui/ProfilePhotoImage";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -20,11 +20,8 @@ type MessageToast = {
 
 const TOAST_DURATION_MS = 6000;
 
-/**
- * App-wide "new message" toast (avatar, name, preview) — a second subscriber on
- * MessagingProvider's already-open socket, so it costs nothing extra. Suppressed only
- * when the visitor already has that exact conversation open.
- */
+// "New message" popup shown on any page. Uses the existing socket, and stays quiet if
+// that chat is already open.
 export default function MessageNotifications() {
   const { isLoggedIn } = useAuth();
   const { subscribe } = useMessaging();
@@ -70,8 +67,7 @@ export default function MessageNotifications() {
     });
   }, [isLoggedIn, subscribe, dismiss]);
 
-  // Flip `entered` a tick after mount so the initial render starts off-screen/transparent
-  // and transitions in, instead of just appearing.
+  // Set a tick after mount so the popup slides in instead of just appearing.
   useEffect(() => {
     if (toasts.some((t) => !t.entered)) {
       const raf = requestAnimationFrame(() => {
@@ -95,7 +91,7 @@ export default function MessageNotifications() {
           onClick={() => dismiss(t.id)}
         >
           <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-pink-50">
-            <Image alt="" className="object-cover" fill sizes="40px" src={profilePhotoSrc(t.photo)} />
+            <ProfilePhotoImage alt="" className="object-cover" fill sizes="40px" src={profilePhotoSrc(t.photo)} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">

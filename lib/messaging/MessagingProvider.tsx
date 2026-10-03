@@ -14,7 +14,7 @@ type SendPayload =
 type MessagingContextValue = {
   status: ConnectionStatus;
   sendMessage: (payload: SendPayload) => Promise<SendMessageAck>;
-  /** Fires for every incoming real-time message, on whatever page the visitor is on. Returns an unsubscribe function. */
+  /** Called for every incoming message, on any page. Returns an unsubscribe function. */
   subscribe: (onPush: (push: IncomingMessagePush) => void) => () => void;
 };
 
@@ -22,10 +22,8 @@ const MessagingContext = createContext<MessagingContextValue | null>(null);
 
 const RECONNECT_BASE_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 15000;
-/** How long the tab must stay hidden before we tear the socket down — long enough that a
- * quick tab-switch or checking a notification doesn't thrash the connection, short enough
- * that a genuinely backgrounded/idle tab isn't paying WebSocket connection-minutes (billed
- * regardless of activity) for no reason. */
+// How long a tab must stay hidden before we close the socket. Long enough to ignore a quick
+// tab switch; short enough that idle tabs don't rack up connection minutes.
 const BACKGROUND_CLOSE_DELAY_MS = 60_000;
 
 function isIncomingPush(data: unknown): data is IncomingMessagePush {
@@ -36,12 +34,8 @@ function isSendAck(data: unknown): data is SendMessageAck {
   return !!data && typeof data === "object" && "ok" in (data as object);
 }
 
-/**
- * One WebSocket connection for the whole app — mounted once in the root layout, not
- * per-page, so real-time pushes reach the visitor on any page (see
- * backend docs/messaging-websocket.md). Connects only while signed in; reconnects with
- * backoff on an unexpected drop, using a fresh ID token each time.
- */
+// One WebSocket for the whole app, mounted in the root layout so messages arrive on any
+// page. Connects while signed in and reconnects with backoff if it drops.
 export function MessagingProvider({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, userId, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<ConnectionStatus>("idle");
@@ -53,15 +47,12 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
   >([]);
   const reconnectAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // True only when *we* intentionally closed the socket (logout/unmount/backgrounding) —
-  // distinguishes that from a drop, which is the one case that should trigger a reconnect.
+  // True when we closed the socket ourselves, so it isn't treated as a drop to reconnect from.
   const closedByUsRef = useRef(false);
-  // Specifically "closed because the tab was hidden" — distinct from closedByUsRef so the
-  // visibility-restore handler knows to reconnect, while logout still never does.
+  // True when we closed it because the tab was hidden, so we reconnect when it's visible again.
   const closedForBackgroundRef = useRef(false);
   const backgroundTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // `connect` calls itself (to reconnect) from inside its own onclose handler — a ref
-  // avoids referencing the `const connect` before its declaration finishes.
+  // connect() reconnects from its own onclose handler, so it calls itself through a ref.
   const connectRef = useRef<() => void>(() => {});
 
   const connect = useCallback(() => {
@@ -79,7 +70,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       } catch {
         token = undefined;
       }
-      if (!token) return; // lost auth between the effect firing and this resolving — nothing to connect with
+      if (!token) return; // signed out in the meantime
 
       setStatus("connecting");
       closedByUsRef.current = false;
@@ -105,8 +96,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         if (isSendAck(data)) {
-          // FIFO: sends and their acks arrive in order on one connection — no need to
-          // correlate by id for a chat UI that sends one message at a time per user action.
+          // Acks come back in send order on one connection, so first in, first out.
           pendingSendsRef.current.shift()?.resolve(data);
         }
       };
@@ -138,7 +128,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       wsRef.current?.close();
       wsRef.current = null;
-      // Deferred to a microtask — avoids a same-tick cascading render (same as AuthProvider).
+      // Deferred to avoid a cascading render.
       Promise.resolve().then(() => setStatus("idle"));
       return;
     }
@@ -150,13 +140,11 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       wsRef.current?.close();
       wsRef.current = null;
     };
-    // userId too: if the signed-in account changes, drop the old socket (authenticated as the
-    // previous user) and reconnect with the new user's token.
+    // Reconnect as the new user if the account changes.
   }, [authLoading, isLoggedIn, userId, connect]);
 
-  // Pause the connection while the tab is genuinely backgrounded (not just a quick
-  // tab-switch) — WebSocket connection-minutes are billed regardless of activity, and a
-  // hidden tab can't act on an incoming push anyway. Resumes immediately on return.
+  // Close the socket while the tab is hidden for a while (connection minutes cost money)
+  // and reconnect as soon as it's visible again.
   useEffect(() => {
     if (authLoading || !isLoggedIn) return;
 

@@ -32,9 +32,9 @@ type Mode = "signIn" | "signUp";
 type Props = {
   mode: Mode;
   initialEmail?: string;
-  /** Safe in-app path after sign-in (e.g. `/onboarding/profile`). */
+  /** Where to go after sign-in, e.g. /onboarding/profile. */
   nextHref?: string;
-  /** Set by lib/api/authRedirect.ts when redirected here after a 401 — picks the subtitle. */
+  /** Why the user was sent here (e.g. after a 401); picks the subtitle. */
   reason?: string;
 };
 
@@ -46,7 +46,7 @@ const SIGN_IN_REASON_SUBTITLES: Record<string, string> = {
   required: "Please sign in to continue.",
 };
 
-/** Post-authentication redirect shared by sign-in and (now auto-confirmed, immediately signed-in) sign-up. */
+// Where to go after sign-in or sign-up.
 async function redirectAfterAuth(
   router: ReturnType<typeof useRouter>,
   nextHref: string | undefined,
@@ -249,9 +249,7 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
           userAttributes: { email, phone_number: normalizedPhone },
         },
       });
-      // No confirmation step: the account is auto-confirmed server-side, and the initial
-      // profile row is created by a Cognito Post Confirmation trigger — sign in
-      // immediately rather than a separate confirm screen.
+      // Accounts are auto-confirmed, so sign in right away.
       const signInResult = await signIn({ username: email, password });
       if (signInResult.nextStep.signInStep === "DONE") {
         await redirectAfterAuth(router, nextHref);

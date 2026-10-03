@@ -1,5 +1,5 @@
 /**
- * @deprecated Import from `@/lib/onboarding` instead. This file re-exports for backward compatibility.
+ * @deprecated Import from `@/lib/onboarding` instead. Kept for old imports.
  */
 export type { OnboardingStatus, ProfileResponse } from "./onboarding/types";
 export {

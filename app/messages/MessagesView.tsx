@@ -17,19 +17,19 @@ import type { ProfileResponse } from "@/lib/onboarding/types";
 import ConversationListPanel from "@/components/messages/ConversationListPanel";
 import MessageThreadPanel from "@/components/messages/MessageThreadPanel";
 
-/** Newest→oldest per page from the backend; the UI shows oldest→newest, latest at the bottom. */
+// The API returns newest first; we show oldest first, latest at the bottom.
 function chronological(page: Message[]): Message[] {
   return [...page].reverse();
 }
 
-/** Minimum gap between fresh (cache-bypassing) partner-status fetches, per partner. */
+// Minimum time between fresh status fetches for the same person.
 const STATUS_REFRESH_MS = 5 * 60 * 1000;
 
 function statusFetchStorageKey(userId: string): string {
   return `matchmate.messages.lastStatusFetch.${userId}`;
 }
 
-/** Epoch ms of the last fresh status fetch for this partner, or 0 if none (or storage unavailable). */
+// When we last fetched this person's status (0 if never).
 function getLastStatusFetch(userId: string): number {
   try {
     const raw = window.localStorage.getItem(statusFetchStorageKey(userId));
@@ -44,7 +44,7 @@ function setLastStatusFetch(userId: string, at: number): void {
   try {
     window.localStorage.setItem(statusFetchStorageKey(userId), String(at));
   } catch {
-    /* private browsing / storage disabled — best effort only */
+    /* storage unavailable, ignore */
   }
 }
 
@@ -75,7 +75,7 @@ export default function MessagesView() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  // Briefly highlights the conversation row a live push just moved to the top of the list.
+  // Briefly highlights a conversation that a new message just moved to the top.
   const [highlightedConversationId, setHighlightedConversationId] = useState<string | null>(null);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -87,16 +87,10 @@ export default function MessagesView() {
   const activeConversationId =
     ownSub && activeUserId ? buildDmConversationId(ownSub, activeUserId) : null;
 
-  // Conversation list — the List and Thread are different screens (see ConversationListPanel/
-  // MessageThreadPanel's `hidden` props: one-at-a-time on every viewport, never side-by-side).
-  // A direct deep link into one thread (e.g. "Send message" from a profile card) should never
-  // load the List screen's own data — so this only fetches once the List screen is actually
-  // the one being shown (no activeUserId), whether that's on initial load with no `?to=`, or
-  // later when the user taps back. Loaded once per login after that; real-time pushes keep it
-  // current without needing to re-fetch. hasLoadedConversationsRef is set synchronously before
-  // the async call and never reset except on logout, so it also survives React Strict Mode's
-  // dev-only double-invocation without a `cancelled`-flag race (see the message-thread effect
-  // below for why a naive `cancelled` closure combined with a run-once guard can get this wrong).
+  // Load the conversation list only when the list screen is actually showing, so opening a
+  // chat directly (e.g. "Send message") doesn't fetch it. Loaded once per login; live
+  // messages keep it current. The ref is set before the request so Strict Mode doesn't
+  // load it twice.
   const hasLoadedConversationsRef = useRef(false);
   useEffect(() => {
     if (!isLoggedIn) {
@@ -137,15 +131,10 @@ export default function MessagesView() {
     }
   }
 
-  // Message thread for whichever conversation is active — resets and reloads on every switch.
-  // fetchingThreadRef survives React Strict Mode's dev-only double-invocation of this effect,
-  // so only one request actually gets sent per id. But that means a per-invocation `cancelled`
-  // closure (set true by Strict Mode's spurious cleanup between the two invocations) would
-  // wrongly discard the one real request's own result — there's no second invocation left to
-  // apply it. So instead: track the latest activeConversationId in a ref and compare against
-  // that when the request resolves — true staleness (switched to a different conversation
-  // before this one's fetch finished) still gets discarded correctly; Strict Mode's harmless
-  // remount (same id, nothing actually changed) does not.
+  // Loads the open conversation, and reloads when it changes. fetchingThreadRef stops
+  // Strict Mode from sending the request twice. To drop stale results we compare against
+  // the latest conversation id in a ref, not a `cancelled` flag, which Strict Mode's extra
+  // cleanup would set and lose the only real response.
   const fetchingThreadRef = useRef<Set<string>>(new Set());
   const latestConversationIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -193,8 +182,7 @@ export default function MessagesView() {
     }
   }
 
-  // Keeps profilesByUserId filled in for every conversation row and the active thread's
-  // header — the list/message APIs only ever return the other participant's raw userId.
+  // Fetch profiles for everyone in the list and the open chat. The APIs only return user ids.
   useEffect(() => {
     const needed = new Set<string>();
     for (const c of conversations) needed.add(c.otherUserId);
@@ -219,9 +207,8 @@ export default function MessagesView() {
     });
   }, [conversations, activeUserId, profilesByUserId]);
 
-  // Live pushes: update whichever thread is open, and always keep the conversation list
-  // current (recency order, preview text) — per backend docs, this fires app-wide, not
-  // just while a chat is open, so both need to react regardless of what's on screen.
+  // Incoming messages: update the open chat and the conversation list (order and preview).
+  // These arrive app-wide, not just while a chat is open.
   const handlePush = useCallback(
     (push: IncomingMessagePush) => {
       if (push.conversationId === activeConversationId) {
@@ -259,9 +246,7 @@ export default function MessagesView() {
         setHighlightedConversationId((id) => (id === push.conversationId ? null : id));
       }, 3500);
 
-      // Any incoming push is proof its sender is online right now — this handler already
-      // runs for every push app-wide, so updating their status here is free (no extra
-      // fetch), keeping both the thread header and the list's online dot accurate.
+      // Someone who just sent a message is online, so mark them online without a fetch.
       const pushEpoch = Number(push.createdAt.split("#")[0]);
       setProfilesByUserId((prev) => {
         const existing = prev[push.fromUser];
@@ -277,13 +262,9 @@ export default function MessagesView() {
 
   useEffect(() => subscribe(handlePush), [subscribe, handlePush]);
 
-  // The bulk fetch above caches a profile for up to 3h, so it can't reflect live status.
-  // No ongoing polling while a thread stays open — just re-fetch on open, and only if the
-  // last fetch for this partner (tracked in localStorage) was 5+ minutes ago.
-  // fetchingStatusRef guards against React Strict Mode's dev-only double-invocation firing
-  // this noStore (always-real-network) request twice — see fetchingThreadRef above for why
-  // a per-invocation `cancelled` closure would wrongly discard the one real request's own
-  // result instead (there's no second invocation left to apply it).
+  // Profiles above can be cached for 3h, so refresh the other person's status when a chat
+  // opens, at most every 5 minutes per person. No polling. The ref keeps Strict Mode from
+  // sending it twice (see fetchingThreadRef).
   const fetchingStatusRef = useRef<Set<string>>(new Set());
   const latestActiveUserIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -310,9 +291,7 @@ export default function MessagesView() {
   }
 
   function handleBack() {
-    // Actual history back, not a push to the bare list — returns to wherever this
-    // conversation was opened from (a profile page, search results, or the list itself),
-    // not always to /messages.
+    // Real browser back, so you return to wherever you opened the chat from.
     router.back();
   }
 

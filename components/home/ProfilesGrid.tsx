@@ -35,8 +35,7 @@ export default function ProfilesGrid({
           )
         ) : (
           profiles.flatMap((profile, index) => {
-            // Only the very first card is realistically the LCP element — priority on every
-            // card would defeat lazy-loading for the rest of the grid.
+            // Only the first card gets priority; the rest lazy-load.
             const cards: React.ReactNode[] = [
               <ProfileCard key={profile.userId} priority={index === 0} profile={profile} />,
             ];

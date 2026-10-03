@@ -4,7 +4,7 @@ import { forwardJsonResponse } from "@/lib/api/proxy";
 
 export const runtime = "nodejs";
 
-/** Requires a real bearer token; the backend also checks the caller is actually a participant. */
+// Requires a signed-in user; the backend also checks they're in the conversation.
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ conversationId: string }> },

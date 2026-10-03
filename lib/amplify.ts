@@ -2,11 +2,8 @@ import { Amplify } from "aws-amplify";
 
 let configured = false;
 
-/**
- * NEXT_PUBLIC_* vars must be read with static `process.env.NEXT_PUBLIC_*` expressions.
- * Dynamic access like `process.env[name]` is not inlined into the client bundle, so values
- * from `.env.local` would always appear empty in the browser.
- */
+// Read NEXT_PUBLIC_* vars as process.env.NAME directly. process.env[name] isn't inlined
+// into the browser bundle and comes back empty.
 export function configureAmplifyAuth() {
   if (configured) return true;
 
@@ -48,13 +45,8 @@ export function configureAmplifyAuth() {
   return true;
 }
 
-/**
- * Clears Amplify's persisted auth state (tokens + OAuth-in-flight bookkeeping under
- * `CognitoIdentityServiceProvider.<clientId>.*`, per TokenStore.mjs — no public API for
- * this). Needed because a stuck `signInWithRedirect` leaves the "in-flight" flag set,
- * which blocks every later `fetchAuthSession()` until cleared — a reload alone won't fix
- * it since this is persisted storage, not in-memory state.
- */
+// Clears Amplify's saved auth state. A stuck Google redirect can leave a flag behind that
+// blocks every later fetchAuthSession(), and a reload doesn't clear it.
 export function resetAmplifyAuthState(): void {
   const prefixes = ["CognitoIdentityServiceProvider", "amplify-signin-with-hostedUI"];
   for (const storage of [window.localStorage, window.sessionStorage]) {

@@ -14,11 +14,8 @@ import { isSessionExpiredError } from "@/lib/api/authRedirect";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
-/**
- * Nudges a logged-in user with an unverified email, handling the request/confirm-code
- * flow inline. Renders nothing for anonymous or already-verified visitors. Verifies via
- * SES, not Cognito's built-in flow (see backend docs/authentication.md).
- */
+// Prompts signed-in users with an unverified email to verify it, right in the banner.
+// Shows nothing for signed-out or verified users.
 export default function EmailVerificationBanner() {
   const { isLoggedIn, loading: authLoading } = useAuth();
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
@@ -34,8 +31,7 @@ export default function EmailVerificationBanner() {
 
   useEffect(() => {
     if (authLoading || !isLoggedIn) return;
-    // Once the search screen's URL already has filter params, this isn't a fresh landing —
-    // skip re-checking on every return trip to "/".
+    // Filters in the URL mean we've already checked this visit, so skip it.
     if (typeof window !== "undefined" && window.location.search) return;
     let cancelled = false;
     fetchMyProfileCached()
@@ -70,8 +66,7 @@ export default function EmailVerificationBanner() {
     }, 1000);
   }
 
-  // A real 401 already triggered the session-expired toast (see clientError.ts); this
-  // just needs to skip the redundant inline error for that one case.
+  // Skip the inline error if the session-expired toast already showed.
   function handleAuthError(err: unknown, fallbackMessage: string) {
     if (!isSessionExpiredError(err)) {
       setError(err instanceof Error ? err.message : fallbackMessage);
@@ -107,9 +102,7 @@ export default function EmailVerificationBanner() {
       setEmailVerified(true);
       setJustVerified(true);
       setTimeout(() => setJustVerified(false), 4000);
-      // This changed emailVerified via a different endpoint than updateMyProfile, so the
-      // shared cache wouldn't otherwise learn about it — patch it in directly rather than
-      // leaving other readers of fetchMyProfileCached() stale for the rest of the TTL.
+      // Update the cached profile too, since this didn't go through updateMyProfile.
       const cached = getCachedProfileIfFresh();
       if (cached) setMyProfileCache({ ...cached, emailVerified: true });
     } catch (confirmErr) {

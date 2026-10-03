@@ -82,7 +82,7 @@ export default function OnboardingAboutPage() {
     if (Object.keys(nextDetailErrors).length > 0) return;
 
     const payload = profileDetailsToPayload(details);
-    // Nothing changed (e.g. came back to this step, or left it all blank) — no write needed.
+    // Nothing changed, so skip the save.
     if (JSON.stringify(payload) === initialPayload) {
       goToPhotos();
       return;

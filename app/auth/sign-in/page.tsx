@@ -8,8 +8,7 @@ type Props = {
 export const metadata: Metadata = {
   title: "Sign In",
   description: "Sign in to MatchMate.live to browse profiles and message your matches.",
-  // Canonicalize away redirect-tracking query params (?next=, ?reason=) so they
-  // don't get indexed as separate, near-duplicate pages.
+  // Canonical URL without ?next= / ?reason=, so those aren't indexed as separate pages.
   alternates: {
     canonical: "/auth/sign-in",
   },

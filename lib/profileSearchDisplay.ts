@@ -1,8 +1,5 @@
-/**
- * DynamoDB profile keys (normalized lowercase), format:
- * - `locationGender`: `country#city#gender`
- * - `countryGender`: `country#gender`
- */
+// Search key formats (lowercase): locationGender is country#city#gender, countryGender is
+// country#gender.
 export function parseLocationGender(
   key: string | undefined,
 ): { country: string; city: string; gender: string } | null {
@@ -31,11 +28,8 @@ function plural(n: number, unit: string): string {
   return `${n} ${unit}${n === 1 ? "" : "s"} ago`;
 }
 
-/**
- * Compact relative time for tight spaces (search cards): "just now", "5 minutes ago",
- * "4 hours ago", "2 days ago", "3 weeks ago", "1 month ago", "2 years ago". Months are
- * 30-day blocks and years 365-day blocks — close enough for a "last seen" hint.
- */
+// Short "time ago" text for search cards, e.g. "5 minutes ago", "2 weeks ago".
+// A month is 30 days and a year 365, close enough here.
 export function formatTimeAgo(epochMs: number, now: number = Date.now()): string {
   if (!Number.isFinite(epochMs)) return "—";
   const diff = Math.max(0, now - epochMs);

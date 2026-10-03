@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ProfilePhotoImage from "@/components/ui/ProfilePhotoImage";
 import { useRef, useState } from "react";
 import { profilePhotoSrc } from "@/lib/profilePhoto";
 
@@ -12,7 +12,7 @@ type ProfilePhotoCarouselProps = {
 export default function ProfilePhotoCarousel({ photos, name }: ProfilePhotoCarouselProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);
-  // No photos → one slide showing the placeholder, same as before this had a carousel.
+  // No photos: show one placeholder slide.
   const items = photos && photos.length > 0 ? photos : [undefined];
 
   function goTo(next: number) {
@@ -22,8 +22,7 @@ export default function ProfilePhotoCarousel({ photos, name }: ProfilePhotoCarou
     track.scrollTo({ left: clamped * track.clientWidth, behavior: "smooth" });
   }
 
-  // Scroll-snap drives the actual navigation (native touch swipe on mobile, drag/wheel on
-  // desktop) — this just reads position back out to keep the arrows/dots in sync.
+  // Scroll-snap handles swiping; this just keeps the arrows and dots in sync.
   function handleScroll() {
     const track = trackRef.current;
     if (!track || track.clientWidth === 0) return;
@@ -41,7 +40,7 @@ export default function ProfilePhotoCarousel({ photos, name }: ProfilePhotoCarou
         >
           {items.map((key, i) => (
             <div key={key ?? `placeholder-${i}`} className="relative h-full w-full shrink-0 snap-center">
-              <Image
+              <ProfilePhotoImage
                 alt={`${name}'s photo ${i + 1} of ${items.length}`}
                 className="object-contain object-center"
                 fill

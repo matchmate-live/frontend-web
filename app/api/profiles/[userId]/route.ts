@@ -14,12 +14,7 @@ function upstreamHeaders(request: NextRequest) {
   return headers;
 }
 
-/**
- * GET profile by id (same upstream as /profiles/me, path is explicit member id).
- * Used when opening /profile/[userId] from search; forwards Cache-Control for browser caching.
- * Public: the backend route itself has no authorizer and resolves an optional viewer
- * identity, same as /search — an anonymous visitor gets the redacted public view, not 401.
- */
+// Gets a profile by id for /profile/[userId]. Public: signed-out visitors get the public view.
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ userId: string }> },
@@ -29,8 +24,8 @@ export async function GET(
     return NextResponse.json({ message: "userId is required" }, { status: 400 });
   }
 
-  // Fake (filler) profiles are answered from the local JSON — no backend round trip. Not
-  // cached: lastSeen is stamped "now" on every read, like the search results they come from.
+  // Fake profiles come from the local JSON, no backend call. Not cached, since they always
+  // show as online now.
   const fake = getFakeProfileById(userId.trim());
   if (fake) {
     return NextResponse.json(fake, { headers: { "Cache-Control": "no-store" } });

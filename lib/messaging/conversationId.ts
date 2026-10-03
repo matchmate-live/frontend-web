@@ -1,10 +1,5 @@
-/**
- * Mirrors backend/src/utils/conversationId.js exactly — a 1:1 DM conversation id is a
- * pure function of the two participant subs (lexicographically ordered, so it's the same
- * regardless of who's asking), format `dm#<min-sub>#<max-sub>`. Computing it client-side
- * means the UI can open/address a conversation immediately (e.g. from a "Send message"
- * link on a profile) without a round trip just to learn its id.
- */
+// Same as the backend's conversationId.js: dm#<smaller sub>#<larger sub>. Working it out
+// here lets us open a chat straight away without asking the server for the id.
 export function buildDmConversationId(userA: string, userB: string): string | null {
   const a = userA.trim();
   const b = userB.trim();
@@ -22,7 +17,7 @@ export function parseDmParticipants(conversationId: string): [string, string] | 
   return [u1, u2];
 }
 
-/** The other participant in a DM, given your own sub. */
+// The other person in a conversation.
 export function otherParticipant(conversationId: string, ownSub: string): string | null {
   const pair = parseDmParticipants(conversationId);
   if (!pair) return null;

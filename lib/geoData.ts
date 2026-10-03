@@ -1,5 +1,5 @@
-// Deep import on purpose: the package root also pulls in the ~8 MB city dataset. Cities
-// are served per country by app/api/geo/cities/[isoCode] instead (see fetchCityOptions).
+// Deep import so we don't bundle the 8 MB city data. Cities come from
+// /api/geo/cities/[isoCode] instead.
 import Country from "country-state-city/lib/country";
 
 type CountryOption = {
@@ -20,9 +20,8 @@ export function getCountryOptions(): CountryOption[] {
 
 const cityRequests = new Map<string, Promise<string[]>>();
 
-/** Lowercase city names for `countryValue` (country name lowercased). Same data home
- * filters and onboarding use. Fetched once per country per page load; resolves to [] for an
- * unknown country or a failed request (a failure isn't cached, so it's retried next time). */
+// City names for a country, fetched once per page load. Returns [] for an unknown country
+// or a failed request (failures are retried next time).
 export function fetchCityOptions(countryValue: string): Promise<string[]> {
   if (!countryValue) return Promise.resolve([]);
   const country = Country.getAllCountries().find(

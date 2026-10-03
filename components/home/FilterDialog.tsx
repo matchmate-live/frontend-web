@@ -23,11 +23,8 @@ type FilterDialogProps = {
 };
 
 /**
- * Raw text the user is typing, separate from the committed numeric value — otherwise
- * clearing the field to type a new number snaps straight back to the default on every
- * keystroke, since Number("") is 0 and `0 || fallback` treats that the same as empty.
- * Re-syncs from `committedValue` only when `open` flips true (dialog reopened), not on
- * every parent update caused by this hook's own `onCommit` calls.
+ * Keeps the typed text separate from the number, so clearing the field to type a new value
+ * doesn't snap back to the default. Resets from the saved value when the dialog reopens.
  */
 function useAgeFieldText(committedValue: number, open: boolean, fallback: number, onCommit: (value: number) => void) {
   const [text, setText] = useState(String(committedValue));

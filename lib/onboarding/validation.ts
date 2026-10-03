@@ -16,7 +16,7 @@ function parseUtcMidnightParts(iso: string): { y: number; m: number; d: number }
   return { y, m, d };
 }
 
-/** Age in full years at UTC date boundary (aligned with typical `type="date"` behavior). */
+// Age in whole years, using UTC dates.
 export function ageFromIsoDobUtc(iso: string): number | null {
   const parts = parseUtcMidnightParts(iso);
   if (!parts) return null;
@@ -44,7 +44,7 @@ export function validateDobAgeRange(iso: string): string | undefined {
   return undefined;
 }
 
-/** Latest YYYY-MM-DD so age >= minAge (UTC; aligned with backend `calculateAge`). */
+// Latest birth date (YYYY-MM-DD) for someone at least minAge.
 export function maxIsoDobForMinAgeUtc(minAge: number): string {
   const now = new Date();
   const y = now.getUTCFullYear() - minAge;
@@ -53,7 +53,7 @@ export function maxIsoDobForMinAgeUtc(minAge: number): string {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
-/** Earliest YYYY-MM-DD so age <= maxAge (UTC). */
+// Earliest birth date (YYYY-MM-DD) for someone at most maxAge.
 export function minIsoDobForMaxAgeUtc(maxAge: number): string {
   const now = new Date();
   const y = now.getUTCFullYear() - maxAge;
@@ -71,10 +71,8 @@ export type OnboardingProfileInput = {
   genderPreference: string;
 };
 
-/**
- * Validates onboarding profile step fields before submit.
- * Returns `undefined` when valid, otherwise a single user-facing message (legacy) or use `validateOnboardingProfileFieldsDetailed`.
- */
+// Checks the profile step before submit. Returns an error message, or undefined if valid.
+// For per-field errors use validateOnboardingProfileFieldsDetailed.
 export function validateOnboardingProfileMessage(input: OnboardingProfileInput): string | undefined {
   const detailed = validateOnboardingProfileFieldsDetailed(input);
   if (detailed.ok) return undefined;
@@ -108,7 +106,7 @@ export function validateOnboardingProfileFieldsDetailed(input: OnboardingProfile
   return { ok, errors };
 }
 
-/** Reject open redirects and non-app paths. */
+// Only allows paths inside the app (no open redirects).
 export function isSafeRelativeAppPath(path: string): boolean {
   if (!path.startsWith("/") || path.startsWith("//")) return false;
   if (path.includes("\0")) return false;

@@ -13,17 +13,14 @@ type MultiSelectProps = {
   placeholder: string;
   /** Maximum selections. Omit for no limit. */
   max?: number;
-  /** Shown when the user tries to pick past `max`. */
+  /** Error shown when trying to pick more than `max`. */
   limitMessage?: string;
-  /** Id of the visible label element, so the trigger button is announced with it. */
+  /** Id of the visible label, so screen readers announce it. */
   labelledBy?: string;
 };
 
-/**
- * Dropdown with a checkbox list; selected items also show as removable chips below it.
- * At `max`, remaining options are greyed out but stay clickable — the click is what
- * surfaces the limit error, rather than the option silently doing nothing.
- */
+// Dropdown with checkboxes; picked items show as removable chips. At `max` the other options
+// are greyed out but still clickable, so clicking one shows the limit error.
 export default function MultiSelect({
   options,
   value,
