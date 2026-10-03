@@ -43,7 +43,7 @@ function isSendAck(data: unknown): data is SendMessageAck {
  * backoff on an unexpected drop, using a fresh ID token each time.
  */
 export function MessagingProvider({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, loading: authLoading } = useAuth();
+  const { isLoggedIn, userId, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<ConnectionStatus>("idle");
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -150,7 +150,9 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [authLoading, isLoggedIn, connect]);
+    // userId too: if the signed-in account changes, drop the old socket (authenticated as the
+    // previous user) and reconnect with the new user's token.
+  }, [authLoading, isLoggedIn, userId, connect]);
 
   // Pause the connection while the tab is genuinely backgrounded (not just a quick
   // tab-switch) — WebSocket connection-minutes are billed regardless of activity, and a

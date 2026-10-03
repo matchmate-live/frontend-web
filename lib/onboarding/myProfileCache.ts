@@ -45,10 +45,16 @@ export function clearMyProfileCache(): void {
   }
 }
 
-/** The cached profile, if one exists and is still within the TTL — null otherwise (no fetch). */
-export function getCachedProfileIfFresh(): ProfileResponse | null {
+/**
+ * The cached profile, if one exists and is still within the TTL — null otherwise (no fetch).
+ * Pass `forUserId` (the signed-in user's sub) to only get a hit if the cache belongs to that
+ * user: the cache lives in localStorage, so after signing out and in as someone else it could
+ * otherwise serve the previous account's profile.
+ */
+export function getCachedProfileIfFresh(forUserId?: string): ProfileResponse | null {
   const cached = memoryCache ?? readLocalStorageCache();
   if (!cached || Date.now() - cached.at >= CACHE_TTL_MS) return null;
+  if (forUserId !== undefined && cached.profile.userId !== forUserId) return null;
   memoryCache = cached;
   return cached.profile;
 }
