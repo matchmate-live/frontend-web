@@ -1,3 +1,4 @@
+import { getCurrentUser } from "aws-amplify/auth";
 import type { ProfileResponse } from "./types";
 import { throwApiError } from "@/lib/api/clientError";
 import { authHeader } from "@/lib/api/authHeader";
@@ -24,30 +25,47 @@ export async function fetchMyProfile(): Promise<ProfileResponse | null> {
   return res.json() as Promise<ProfileResponse>;
 }
 
-let fetchMyProfileInFlight: Promise<ProfileResponse | null> | null = null;
+let fetchMyProfileInFlight: { userId: string | null; promise: Promise<ProfileResponse | null> } | null = null;
+
+/** Signed-in user's sub from Amplify's local session (no network), or null if signed out. */
+async function currentUserId(): Promise<string | null> {
+  try {
+    return (await getCurrentUser()).userId;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Cached wrapper around fetchMyProfile (see myProfileCache.ts) — "my profile" rarely
  * changes session to session, so re-fetching it on every caller is wasted cost. An
  * in-flight request is shared across simultaneous callers. updateMyProfile below seeds the
  * cache with each write's result, so this tab's own edits are never served stale.
+ *
+ * Both the cache and the in-flight request are matched to the signed-in user, so switching
+ * accounts can never return the previous account's profile.
  */
 export async function fetchMyProfileCached(options?: { forceRefresh?: boolean }): Promise<ProfileResponse | null> {
-  if (!options?.forceRefresh) {
-    const cached = getCachedProfileIfFresh();
+  const userId = await currentUserId();
+  if (!options?.forceRefresh && userId) {
+    const cached = getCachedProfileIfFresh(userId);
     if (cached) return cached;
   }
-  if (!fetchMyProfileInFlight) {
-    fetchMyProfileInFlight = fetchMyProfile()
-      .then((profile) => {
-        if (profile) setMyProfileCache(profile);
-        return profile;
-      })
-      .finally(() => {
-        fetchMyProfileInFlight = null;
-      });
+  if (!fetchMyProfileInFlight || fetchMyProfileInFlight.userId !== userId) {
+    const entry = {
+      userId,
+      promise: fetchMyProfile()
+        .then((profile) => {
+          if (profile) setMyProfileCache(profile);
+          return profile;
+        })
+        .finally(() => {
+          if (fetchMyProfileInFlight === entry) fetchMyProfileInFlight = null;
+        }),
+    };
+    fetchMyProfileInFlight = entry;
   }
-  return fetchMyProfileInFlight;
+  return fetchMyProfileInFlight.promise;
 }
 
 export async function updateMyProfile(body: Record<string, unknown>): Promise<ProfileResponse> {
