@@ -36,6 +36,12 @@ function writeLastSent(value: number | null) {
   }
 }
 
+/** Forget the last-sent time — on sign-in/out, so a newly signed-in account pings straight
+ * away instead of inheriting the previous account's 14-minute wait. */
+export function resetPresence(): void {
+  writeLastSent(null);
+}
+
 /** Bearer token if signed in, else null — quietly, unlike authHeader(), which would surface
  * a "session expired" notice for what is just a background ping. */
 async function quietIdToken(): Promise<string | null> {
