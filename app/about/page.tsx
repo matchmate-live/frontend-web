@@ -7,7 +7,7 @@ import { ADS_SLOTS } from "@/lib/adsConfig";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Learn about MatchMate.live — a modern dating and matrimonial platform built for meaningful connections with privacy-first discovery and messaging.",
+    "MatchMate.live is a free site for dating, serious relationships and marriage. Learn how it works, how we keep members safe, and why everything is free.",
   alternates: {
     canonical: "/about",
   },
