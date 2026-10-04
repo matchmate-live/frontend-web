@@ -11,7 +11,7 @@ import PasswordVisibilityToggle from "@/components/ui/PasswordVisibilityToggle";
 import AdSlot from "@/components/ads/AdSlot";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import SiteLogo from "@/components/layout/SiteLogo";
-import { ADS_SLOTS } from "@/lib/adsConfig";
+import { ADS_SLOTS, SHOW_UTILITY_PAGE_ADS } from "@/lib/adsConfig";
 import {
   AuthFieldErrors,
   normalizePhoneForCognito,
@@ -108,23 +108,37 @@ function CardShell({
       </nav>
       <MobileDrawer isLoggedIn={false} open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <div className="mx-auto grid w-full max-w-7xl items-stretch gap-6 px-6 py-6 lg:min-h-[calc(100vh-73px)] lg:grid-cols-[240px_minmax(0,1fr)_240px]">
-        <aside className="hidden lg:block">
-          <div className="h-[calc(100vh-2rem)] rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
-            <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-            <AdSlot className="mx-auto block rounded-md bg-pink-50/50" slot={leftSlot} size={{ width: 250, height: 600 }} />
-          </div>
-        </aside>
-
-        <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-between sm:min-h-0 lg:self-center">
-          <div className="mb-4 lg:hidden">
-            <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
+      <div
+        className={`mx-auto grid w-full max-w-7xl items-stretch gap-6 px-6 py-6 lg:min-h-[calc(100vh-73px)] ${
+          SHOW_UTILITY_PAGE_ADS ? "lg:grid-cols-[240px_minmax(0,1fr)_240px]" : ""
+        }`}
+      >
+        {SHOW_UTILITY_PAGE_ADS ? (
+          <aside className="hidden lg:block">
+            <div className="h-[calc(100vh-2rem)] rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
               <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-              <AdSlot className="block min-h-[140px] w-full rounded-md bg-pink-50/50" slot={mobileTopSlot} />
+              <AdSlot className="mx-auto block rounded-md bg-pink-50/50" slot={leftSlot} size={{ width: 250, height: 600 }} />
             </div>
-          </div>
+          </aside>
+        ) : null}
 
-          <SiteLogo className="mb-3 flex justify-center text-center text-xl sm:hidden" iconClassName="h-6 w-6" />
+        {/* justify-between spreads the mobile ads to the top and bottom; without them it would
+            push the logo and the form apart, so start the content near the top instead. */}
+        <div
+          className={`mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col sm:min-h-0 lg:self-center ${
+            SHOW_UTILITY_PAGE_ADS ? "justify-between" : "justify-start pt-14 sm:pt-0"
+          }`}
+        >
+          {SHOW_UTILITY_PAGE_ADS ? (
+            <div className="mb-4 lg:hidden">
+              <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
+                <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
+                <AdSlot className="block min-h-[140px] w-full rounded-md bg-pink-50/50" slot={mobileTopSlot} />
+              </div>
+            </div>
+          ) : null}
+
+          <SiteLogo className="mb-6 flex justify-center text-center text-2xl sm:hidden" iconClassName="h-8 w-8" />
 
           <div className="w-full p-0 sm:rounded-2xl sm:border sm:border-pink-200 sm:bg-white sm:p-6 sm:shadow-sm">
             <SiteLogo
@@ -136,23 +150,27 @@ function CardShell({
             <div className="mt-6">{children}</div>
           </div>
 
-          <div className="mt-4 lg:hidden">
-            <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
-              <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-              <AdSlot
-                className="block min-h-[140px] w-full rounded-md bg-pink-50/50"
-                slot={mobileBottomSlot}
-              />
+          {SHOW_UTILITY_PAGE_ADS ? (
+            <div className="mt-4 lg:hidden">
+              <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
+                <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
+                <AdSlot
+                  className="block min-h-[140px] w-full rounded-md bg-pink-50/50"
+                  slot={mobileBottomSlot}
+                />
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
 
-        <aside className="hidden lg:block">
-          <div className="h-[calc(100vh-2rem)] rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
-            <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-            <AdSlot className="mx-auto block rounded-md bg-pink-50/50" slot={rightSlot} size={{ width: 250, height: 600 }} />
-          </div>
-        </aside>
+        {SHOW_UTILITY_PAGE_ADS ? (
+          <aside className="hidden lg:block">
+            <div className="h-[calc(100vh-2rem)] rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
+              <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
+              <AdSlot className="mx-auto block rounded-md bg-pink-50/50" slot={rightSlot} size={{ width: 250, height: 600 }} />
+            </div>
+          </aside>
+        ) : null}
       </div>
     </main>
   );

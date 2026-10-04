@@ -1,3 +1,8 @@
+// Ads on sign-in/up, settings, messages and contact. Off for now: AdSense doesn't allow ads
+// on pages without real content, and it counts against the site's review. Set to true to
+// bring them back.
+export const SHOW_UTILITY_PAGE_ADS = false;
+
 export const ADS_SLOTS = {
   desktopLeft: process.env.NEXT_PUBLIC_ADSENSE_SLOT_DESKTOP_LEFT ?? "1111111111",
   desktopRight: process.env.NEXT_PUBLIC_ADSENSE_SLOT_DESKTOP_RIGHT ?? "2222222222",

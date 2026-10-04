@@ -6,7 +6,7 @@ import HomeNavbar from "@/components/home/HomeNavbar";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import AdRail from "@/components/home/AdRail";
 import AdSlot from "@/components/ads/AdSlot";
-import { ADS_SLOTS } from "@/lib/adsConfig";
+import { ADS_SLOTS, SHOW_UTILITY_PAGE_ADS } from "@/lib/adsConfig";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { useMessaging } from "@/lib/messaging/MessagingProvider";
 import { fetchConversations, fetchMessages } from "@/lib/messaging/messagesApi";
@@ -333,9 +333,13 @@ export default function MessagesView() {
       <HomeNavbar menuOpen={menuOpen} onToggleMenu={() => setMenuOpen((v) => !v)} />
       <MobileDrawer isLoggedIn={isLoggedIn} open={menuOpen} onClose={() => setMenuOpen(false)} onLogout={signOut} />
 
-      <div className="mx-auto w-full max-w-7xl px-6 py-6">
-        <div className="grid items-stretch gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
-          <AdRail slot={ADS_SLOTS.desktopLeft} />
+      <div className={`mx-auto w-full px-6 py-6 ${SHOW_UTILITY_PAGE_ADS ? "max-w-7xl" : "max-w-5xl"}`}>
+        <div
+          className={`grid items-stretch gap-6 ${
+            SHOW_UTILITY_PAGE_ADS ? "lg:grid-cols-[280px_minmax(0,1fr)_280px]" : ""
+          }`}
+        >
+          {SHOW_UTILITY_PAGE_ADS ? <AdRail slot={ADS_SLOTS.desktopLeft} /> : null}
 
           <section className="relative min-h-[calc(100dvh-7rem)] overflow-hidden rounded-2xl border border-pink-200 bg-white shadow-sm lg:min-h-[calc(100vh-7rem)]">
             <div className={!authLoading && !isLoggedIn ? "pointer-events-none select-none blur-sm" : undefined}>
@@ -388,15 +392,17 @@ export default function MessagesView() {
             ) : null}
           </section>
 
-          <AdRail slot={ADS_SLOTS.desktopRight} />
+          {SHOW_UTILITY_PAGE_ADS ? <AdRail slot={ADS_SLOTS.desktopRight} /> : null}
         </div>
 
-        <div className="mt-6 lg:hidden">
-          <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
-            <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-            <AdSlot className="block min-h-[220px] w-full rounded-md bg-pink-50/50" slot={ADS_SLOTS.mobileBottom} />
+        {SHOW_UTILITY_PAGE_ADS ? (
+          <div className="mt-6 lg:hidden">
+            <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
+              <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
+              <AdSlot className="block min-h-[220px] w-full rounded-md bg-pink-50/50" slot={ADS_SLOTS.mobileBottom} />
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </main>
   );

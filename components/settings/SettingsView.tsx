@@ -6,7 +6,7 @@ import MobileDrawer from "@/components/home/MobileDrawer";
 import AdRail from "@/components/home/AdRail";
 import AdSlot from "@/components/ads/AdSlot";
 import ErrorCard from "@/components/ui/ErrorCard";
-import { ADS_SLOTS } from "@/lib/adsConfig";
+import { ADS_SLOTS, SHOW_UTILITY_PAGE_ADS } from "@/lib/adsConfig";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { fetchMyProfileCached, type ProfileResponse } from "@/lib/onboarding";
 import ProfileTab from "./ProfileTab";
@@ -25,7 +25,11 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 // Same 3-column layout with ad rails as Home, for both signed-in and signed-out views.
+// With ads off it's a single centered column.
 function SettingsAdLayout({ children }: { children: React.ReactNode }) {
+  if (!SHOW_UTILITY_PAGE_ADS) {
+    return <div className="mx-auto w-full max-w-3xl px-6 py-6">{children}</div>;
+  }
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-6">
       <div className="grid items-stretch gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">

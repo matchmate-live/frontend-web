@@ -1,5 +1,5 @@
 import AdSlot from "@/components/ads/AdSlot";
-import { ADS_SLOTS } from "@/lib/adsConfig";
+import { ADS_SLOTS, SHOW_UTILITY_PAGE_ADS } from "@/lib/adsConfig";
 
 export default function ContactContent() {
   return (
@@ -55,15 +55,17 @@ export default function ContactContent() {
         </div>
       </section>
 
-      <div className="mt-8 lg:hidden">
-        <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
-          <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
-          <AdSlot
-            className="block min-h-[220px] w-full rounded-md bg-pink-50/50"
-            slot={ADS_SLOTS.contactMobileInline}
-          />
+      {SHOW_UTILITY_PAGE_ADS ? (
+        <div className="mt-8 lg:hidden">
+          <div className="rounded-xl border border-pink-200 bg-white p-3 shadow-sm">
+            <p className="mb-2 text-xs text-zinc-500">Sponsored</p>
+            <AdSlot
+              className="block min-h-[220px] w-full rounded-md bg-pink-50/50"
+              slot={ADS_SLOTS.contactMobileInline}
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <section className="mt-8">
         <h2 className="text-xl font-semibold text-zinc-900">Support hours</h2>
