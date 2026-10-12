@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverEnv } from "@/lib/api/serverEnv";
-import { forwardJsonResponse } from "@/lib/api/proxy";
+import { clientIpHeaders, forwardJsonResponse } from "@/lib/api/proxy";
 
 export const runtime = "nodejs";
 
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
         Authorization: auth,
         "Content-Type": "application/json",
         Accept: "application/json",
+        ...clientIpHeaders(request),
       },
       body: "{}",
       cache: "no-store",

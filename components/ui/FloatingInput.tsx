@@ -14,6 +14,12 @@ type FloatingInputProps = {
   endAdornment?: React.ReactNode;
   error?: string;
   disabled?: boolean;
+  /** Tells browsers and password managers what the field is, e.g. "email", "new-password". */
+  autoComplete?: string;
+  /** Which on-screen keyboard phones show, e.g. "numeric" for codes. */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  /** Focus the field when it appears, e.g. on a form step change. */
+  autoFocus?: boolean;
 };
 
 export default function FloatingInput({
@@ -29,6 +35,9 @@ export default function FloatingInput({
   endAdornment,
   error,
   disabled = false,
+  autoComplete,
+  inputMode,
+  autoFocus = false,
 }: FloatingInputProps) {
   const hasStart = Boolean(startAdornment);
   const hasEnd = Boolean(endAdornment);
@@ -46,6 +55,9 @@ export default function FloatingInput({
           placeholder=" "
           required={required}
           type={type}
+          autoComplete={autoComplete}
+          inputMode={inputMode}
+          autoFocus={autoFocus}
           min={min}
           max={max}
           value={value}
