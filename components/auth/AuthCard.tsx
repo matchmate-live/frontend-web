@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn, signInWithRedirect, signUp } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
 import { configureAmplifyAuth } from "@/lib/amplify";
@@ -12,6 +12,7 @@ import AdSlot from "@/components/ads/AdSlot";
 import MobileDrawer from "@/components/home/MobileDrawer";
 import SiteLogo from "@/components/layout/SiteLogo";
 import { ADS_SLOTS, SHOW_UTILITY_PAGE_ADS } from "@/lib/adsConfig";
+import { handOffEmail, takeHandedOffEmail } from "@/lib/auth/emailHandoff";
 import {
   AuthFieldErrors,
   normalizePhoneForCognito,
@@ -47,7 +48,7 @@ const SIGN_IN_REASON_SUBTITLES: Record<string, string> = {
 };
 
 // Where to go after sign-in or sign-up.
-async function redirectAfterAuth(
+export async function redirectAfterAuth(
   router: ReturnType<typeof useRouter>,
   nextHref: string | undefined,
 ) {
@@ -68,7 +69,7 @@ async function redirectAfterAuth(
   }
 }
 
-function CardShell({
+export function CardShell({
   mode,
   title,
   subtitle,
@@ -176,8 +177,13 @@ function CardShell({
   );
 }
 
-function ErrorText({ text }: { text: string }) {
-  return <p className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-700">{text}</p>;
+// role="alert" so screen readers announce the error as soon as it appears.
+export function ErrorText({ text }: { text: string }) {
+  return (
+    <p className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-700" role="alert">
+      {text}
+    </p>
+  );
 }
 
 export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: Props) {
@@ -188,6 +194,15 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
 
   const [email, setEmail] = useState(initialEmail);
+
+  // Email handed over from the forgot-password page, if any. Read after mount (sessionStorage
+  // isn't available during server rendering) and deferred so the update doesn't run inside the
+  // effect itself.
+  useEffect(() => {
+    if (mode !== "signIn") return;
+    const handedOff = takeHandedOffEmail();
+    if (handedOff) void Promise.resolve().then(() => setEmail((prev) => prev || handedOff));
+  }, [mode]);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -294,6 +309,7 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
         <form className="space-y-3" onSubmit={handleSignIn}>
           <FloatingInput
             error={fieldErrors.email}
+            autoComplete="username"
             label="Email"
             required
             type="email"
@@ -306,6 +322,7 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
           />
           <FloatingInput
             error={fieldErrors.password}
+            autoComplete="current-password"
             label="Password"
             required
             type={showPassword ? "text" : "password"}
@@ -324,6 +341,15 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
               <PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
             }
           />
+          <div className="text-right">
+            <Link
+              className="text-sm text-pink-300 underline"
+              href="/auth/forgot-password"
+              onClick={() => handOffEmail(email)}
+            >
+              Forgot password?
+            </Link>
+          </div>
           <button
             className="w-full cursor-pointer rounded-md bg-pink-300 p-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
             disabled={busy}
@@ -356,6 +382,7 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
         <form className="space-y-3" onSubmit={handleSignUp}>
           <FloatingInput
             error={fieldErrors.email}
+            autoComplete="username"
             label="Email"
             required
             type="email"
@@ -371,6 +398,7 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
           />
           <FloatingInput
             error={fieldErrors.phoneNumber}
+            autoComplete="tel"
             label="Phone number"
             required
             type="tel"
@@ -389,6 +417,7 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
           <div>
             <FloatingInput
               error={fieldErrors.password}
+              autoComplete="new-password"
               label="Password"
               required
               type={showPassword ? "text" : "password"}
@@ -408,6 +437,7 @@ export default function AuthCard({ mode, initialEmail = "", nextHref, reason }: 
           </div>
           <FloatingInput
             error={fieldErrors.confirmPassword}
+            autoComplete="new-password"
             label="Confirm password"
             required
             type={showConfirmPassword ? "text" : "password"}
