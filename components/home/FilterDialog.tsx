@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { FilterState } from "@/lib/search";
-import { titleCase } from "@/lib/location";
+import CityCombobox from "@/components/ui/CityCombobox";
+import type { CityOptions } from "@/hooks/useCityOptions";
 import { useModalA11y } from "@/hooks/useModalA11y";
 import SelectChevron from "@/components/ui/SelectChevron";
 
@@ -16,7 +17,7 @@ type FilterDialogProps = {
   open: boolean;
   draftFilters: FilterState;
   countries: CountryOption[];
-  cityOptions: string[];
+  cityOptions: CityOptions;
   onClose: () => void;
   onDraftChange: (next: FilterState) => void;
   onApply: () => void;
@@ -131,21 +132,16 @@ export default function FilterDialog({
         </div>
 
         <label className="mt-3 block text-sm text-zinc-700">City</label>
-        <div className="relative mt-1">
-          <select
-            className="w-full appearance-none rounded-md border border-pink-200 py-2 pl-2 pr-9 text-sm"
+        <div className="mt-1">
+          <CityCombobox
             disabled={!draftFilters.country}
+            emptyOptionLabel="All cities"
+            inputClassName="w-full rounded-md border border-pink-200 py-2 pl-2 pr-9 text-sm disabled:bg-zinc-50"
+            cityOptions={cityOptions}
+            placeholder="All cities"
             value={draftFilters.city}
-            onChange={(e) => onDraftChange({ ...draftFilters, city: e.target.value })}
-          >
-            <option value="">All cities</option>
-            {cityOptions.map((city) => (
-              <option key={city} value={city}>
-                {titleCase(city)}
-              </option>
-            ))}
-          </select>
-          <SelectChevron />
+            onChange={(city) => onDraftChange({ ...draftFilters, city })}
+          />
         </div>
 
         <label className="mt-3 block text-sm text-zinc-700">Gender</label>

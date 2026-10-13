@@ -9,7 +9,7 @@ import { configureAmplifyAuth } from "@/lib/amplify";
 import { isSessionExpiredError } from "@/lib/api/authRedirect";
 import { useCityOptions } from "@/hooks/useCityOptions";
 import { getCountryOptions } from "@/lib/geoData";
-import { titleCase } from "@/lib/location";
+import CityCombobox from "@/components/ui/CityCombobox";
 import {
   fetchMyProfile,
   getRedirectFromProfileStep,
@@ -229,29 +229,21 @@ export default function OnboardingProfilePage() {
           <label className="mb-1 block text-xs font-medium text-zinc-600" htmlFor="city">
             City
           </label>
-          <div className="relative">
-            <select
-              className={`w-full appearance-none rounded-lg border bg-white py-2.5 pl-3 pr-9 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
-                fieldErrors.city ? "border-red-400" : "border-zinc-800"
-              }`}
-              disabled={!country}
-              id="city"
-              required
-              value={city}
-              onChange={(e) => {
-                setCity(e.target.value);
-                setFieldErrors((prev) => ({ ...prev, city: undefined }));
-              }}
-            >
-              <option value="">{country ? "Select city" : "Select country first"}</option>
-              {cities.map((c) => (
-                <option key={c} value={c}>
-                  {titleCase(c)}
-                </option>
-              ))}
-            </select>
-            <SelectChevron />
-          </div>
+          <CityCombobox
+            disabled={!country}
+            id="city"
+            inputClassName={`w-full rounded-lg border bg-white py-2.5 pl-3 pr-9 text-sm text-zinc-900 outline-none focus:border-pink-300 ${
+              fieldErrors.city ? "border-red-400" : "border-zinc-800"
+            }`}
+            allowTypedCity
+            cityOptions={cities}
+            placeholder={country ? "Type to search your city" : "Select country first"}
+            value={city}
+            onChange={(next) => {
+              setCity(next);
+              setFieldErrors((prev) => ({ ...prev, city: undefined }));
+            }}
+          />
           {fieldErrors.city ? <p className="mt-1 text-xs text-red-600">{fieldErrors.city}</p> : null}
         </div>
         <div>

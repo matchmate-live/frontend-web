@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import {
@@ -43,8 +43,37 @@ function filtersFromParams(params: URLSearchParams): FilterState | null {
   };
 }
 
+/**
+ * The results list as it was when the user left the home page. Kept in memory (it survives
+ * client-side navigation, not a reload) so going back from a profile shows the same list,
+ * "Load more" pages included, at the same scroll position, without searching again.
+ */
+type SavedResults = {
+  /** The URL query the results belong to, e.g. "?country=pakistan&…". */
+  search: string;
+  filters: FilterState;
+  profiles: SearchProfile[];
+  nextToken: string | null;
+  scrollY: number;
+  savedAt: number;
+};
+
+// Older results are searched again, so online status and new profiles stay current.
+const SAVED_RESULTS_MAX_AGE_MS = 10 * 60 * 1000;
+let savedResults: SavedResults | null = null;
+
+// The saved results if they match the current URL and are recent enough, else null.
+function readSavedResults(): SavedResults | null {
+  if (typeof window === "undefined" || !savedResults) return null;
+  if (savedResults.search !== window.location.search) return null;
+  if (Date.now() - savedResults.savedAt > SAVED_RESULTS_MAX_AGE_MS) return null;
+  return savedResults;
+}
+
 export default function HomeClient() {
-  const hasAutoRequestedRef = useRef(false);
+  // Read once on mount. Always null on a full page load, so hydration isn't affected.
+  const [restored] = useState(readSavedResults);
+  const hasAutoRequestedRef = useRef(restored != null);
   const searchAbortRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
   useEffect(() => {
@@ -57,30 +86,34 @@ export default function HomeClient() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [profiles, setProfiles] = useState<SearchProfile[]>([]);
+  const [profiles, setProfiles] = useState<SearchProfile[]>(restored?.profiles ?? []);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
-  const [nextToken, setNextToken] = useState<string | null>(null);
-  const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
+  const [nextToken, setNextToken] = useState<string | null>(restored?.nextToken ?? null);
+  const [hasRequestedLocation, setHasRequestedLocation] = useState(restored != null);
   const [pendingFetch, setPendingFetch] = useState<
     { kind: "filters"; filters: FilterState } | { kind: "geolocate" } | null
   >(null);
-  const [filters, setFilters] = useState<FilterState>({
-    minAge: DEFAULT_MIN_AGE,
-    maxAge: DEFAULT_MAX_AGE,
-    country: "",
-    city: "",
-    gender: DEFAULT_ANON_GENDER,
-  });
-  const [draftFilters, setDraftFilters] = useState<FilterState>({
-    minAge: DEFAULT_MIN_AGE,
-    maxAge: DEFAULT_MAX_AGE,
-    country: "",
-    city: "",
-    gender: DEFAULT_ANON_GENDER,
-  });
+  const [filters, setFilters] = useState<FilterState>(
+    restored?.filters ?? {
+      minAge: DEFAULT_MIN_AGE,
+      maxAge: DEFAULT_MAX_AGE,
+      country: "",
+      city: "",
+      gender: DEFAULT_ANON_GENDER,
+    },
+  );
+  const [draftFilters, setDraftFilters] = useState<FilterState>(
+    restored?.filters ?? {
+      minAge: DEFAULT_MIN_AGE,
+      maxAge: DEFAULT_MAX_AGE,
+      country: "",
+      city: "",
+      gender: DEFAULT_ANON_GENDER,
+    },
+  );
   const countries = useMemo(() => getCountryOptions(), []);
   const cityOptions = useCityOptions(draftFilters.country);
 
@@ -150,7 +183,8 @@ export default function HomeClient() {
 
   // The last query string we wrote or handled, so we can tell our own URL updates apart
   // from back/forward navigation.
-  const [lastSeenSearch, setLastSeenSearch] = useState<string | null>(null);
+  // Restored results already match the URL, so they count as handled (no new search).
+  const [lastSeenSearch, setLastSeenSearch] = useState<string | null>(restored?.search ?? null);
 
   /**
    * Puts the filters in the URL so going back from a profile restores the same search.
@@ -322,6 +356,43 @@ export default function HomeClient() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingFetch]);
+
+  // Latest results, read when leaving the page (see SavedResults).
+  const latestResultsRef = useRef({ lastSeenSearch, filters, profiles, nextToken, loading });
+  useEffect(() => {
+    latestResultsRef.current = { lastSeenSearch, filters, profiles, nextToken, loading };
+  });
+
+  // Tracks the scroll position and saves the results on unmount. A layout effect, so it's
+  // cleaned up before the next page scrolls to the top and the old position is still known.
+  useLayoutEffect(() => {
+    let scrollY = window.scrollY;
+    const onScroll = () => {
+      scrollY = window.scrollY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      const latest = latestResultsRef.current;
+      savedResults =
+        latest.lastSeenSearch && latest.profiles.length > 0 && !latest.loading
+          ? {
+              search: latest.lastSeenSearch,
+              filters: latest.filters,
+              profiles: latest.profiles,
+              nextToken: latest.nextToken,
+              scrollY,
+              savedAt: Date.now(),
+            }
+          : null;
+    };
+  }, []);
+
+  // Back on the page with saved results: return to where the user was. The browser's own
+  // scroll restoration ran while the page was still empty, so it stopped at the footer.
+  useLayoutEffect(() => {
+    if (restored) window.scrollTo(0, restored.scrollY);
+  }, [restored]);
 
   return (
     <main className="min-h-screen w-full bg-pink-50/10 text-zinc-900">

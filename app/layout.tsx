@@ -114,7 +114,8 @@ export default function RootLayout({
           <SiteFooter />
         </ToastProvider>
         <Analytics />
-        <SpeedInsights />
+        {/* Measures 30% of visits; each measured visit sends its own requests. */}
+        <SpeedInsights sampleRate={0.3} />
       </body>
     </html>
   );

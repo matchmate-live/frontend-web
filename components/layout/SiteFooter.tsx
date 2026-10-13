@@ -19,19 +19,19 @@ export default function SiteFooter() {
           <section>
             <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-800">Explore</h3>
             <nav className="mt-2 flex flex-col gap-1 text-sm">
-              <Link className="text-zinc-700 hover:text-pink-300" href="/">
+              <Link prefetch={false} className="text-zinc-700 hover:text-pink-300" href="/">
                 Home
               </Link>
-              <Link className="text-zinc-700 hover:text-pink-300" href="/about">
+              <Link prefetch={false} className="text-zinc-700 hover:text-pink-300" href="/about">
                 About
               </Link>
-              <Link className="text-zinc-700 hover:text-pink-300" href="/contact">
+              <Link prefetch={false} className="text-zinc-700 hover:text-pink-300" href="/contact">
                 Contact us
               </Link>
-              <Link className="text-zinc-700 hover:text-pink-300" href="/privacy">
+              <Link prefetch={false} className="text-zinc-700 hover:text-pink-300" href="/privacy">
                 Privacy Policy
               </Link>
-              <Link className="text-zinc-700 hover:text-pink-300" href="/terms">
+              <Link prefetch={false} className="text-zinc-700 hover:text-pink-300" href="/terms">
                 Terms of Service
               </Link>
             </nav>
@@ -51,10 +51,10 @@ export default function SiteFooter() {
         <div className="mt-6 flex flex-col gap-2 border-t border-pink-100 pt-4 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
           <p>© {year} MatchMate.live. All rights reserved.</p>
           <nav className="flex gap-4">
-            <Link className="hover:text-pink-300" href="/privacy">
+            <Link prefetch={false} className="hover:text-pink-300" href="/privacy">
               Privacy Policy
             </Link>
-            <Link className="hover:text-pink-300" href="/terms">
+            <Link prefetch={false} className="hover:text-pink-300" href="/terms">
               Terms of Service
             </Link>
           </nav>
