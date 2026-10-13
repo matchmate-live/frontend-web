@@ -123,6 +123,7 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
             <div className="flex w-full min-w-0 gap-2 sm:w-auto sm:flex-wrap sm:justify-end">
               {!isOwnProfile ? (
                 <Link
+                  prefetch={false}
                   className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-pink-200 bg-white px-2.5 py-2 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-pink-300 hover:bg-pink-50/80 sm:flex-initial sm:justify-start sm:py-1.5 sm:text-sm"
                   href={`/messages?to=${encodeURIComponent(profile.userId)}`}
                 >
@@ -131,6 +132,7 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
                 </Link>
               ) : null}
               <Link
+                prefetch={false}
                 className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-pink-200 bg-white px-2.5 py-2 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-pink-300 hover:bg-pink-50/80 sm:flex-initial sm:justify-start sm:py-1.5 sm:text-sm"
                 href={`/profile/${encodeURIComponent(profile.userId)}`}
               >

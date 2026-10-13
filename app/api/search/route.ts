@@ -7,8 +7,9 @@ import type { SearchProfile, SearchResponse } from "@/lib/search";
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
 // Vercel's CDN caches each search for 5 minutes, then serves it stale for 5 more while it
-// refreshes. Browsers don't cache it. Results can be up to ~10 minutes old.
-const SHARED_SEARCH_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=300";
+// refreshes. Browsers keep it for 1 minute, so going back to the results doesn't refetch.
+// Results can be up to ~11 minutes old.
+const SHARED_SEARCH_CACHE_CONTROL = "public, max-age=60, s-maxage=300, stale-while-revalidate=300";
 
 function isOnlineNow(profile: SearchProfile): boolean {
   return (

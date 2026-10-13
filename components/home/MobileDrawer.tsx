@@ -65,6 +65,7 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
         </div>
         <div className="mx-[-1rem]">
           <Link
+            prefetch={false}
             className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
             href="/"
             onClick={onClose}
@@ -73,6 +74,7 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
             Home
           </Link>
           <Link
+            prefetch={false}
             className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
             href="/messages"
             onClick={onClose}
@@ -81,6 +83,7 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
             Messages
           </Link>
           <Link
+            prefetch={false}
             className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
             href="/settings"
             onClick={onClose}
@@ -89,6 +92,7 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
             Profile settings
           </Link>
           <Link
+            prefetch={false}
             className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
             href="/contact"
             onClick={onClose}
@@ -97,6 +101,7 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
             Contact us
           </Link>
           <Link
+            prefetch={false}
             className="flex w-full items-center gap-2 border-y border-pink-200 px-4 py-3 text-left text-sm text-zinc-900"
             href="/about"
             onClick={onClose}
@@ -120,13 +125,14 @@ export default function MobileDrawer({ open, isLoggedIn, onLogout, onClose }: Mo
           ) : (
             <>
               <Link
+                prefetch={false}
                 className="rounded-md border border-pink-200 bg-white px-3 py-2 text-center text-sm text-zinc-900"
                 href="/auth/sign-up"
                 onClick={onClose}
               >
                 Sign up
               </Link>
-              <Link className="rounded-md bg-pink-300 px-3 py-2 text-center text-sm text-white" href="/auth/sign-in" onClick={onClose}>
+              <Link prefetch={false} className="rounded-md bg-pink-300 px-3 py-2 text-center text-sm text-white" href="/auth/sign-in" onClick={onClose}>
                 Sign in
               </Link>
             </>

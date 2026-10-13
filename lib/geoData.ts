@@ -18,11 +18,17 @@ export function getCountryOptions(): CountryOption[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
+// Browsers cache city lists for a year. Bump this whenever the lists change (route output,
+// country-state-city upgrade) so everyone fetches the new ones.
+// v2: removed the 1,000-city cap.
+const CITY_LIST_VERSION = 2;
+
 const cityRequests = new Map<string, Promise<string[]>>();
 
-// City names for a country, fetched once per page load. Returns [] for an unknown country
-// or a failed request (failures are retried next time).
-export function fetchCityOptions(countryValue: string): Promise<string[]> {
+// City names for a country, fetched once per page load. Resolves [] for an unknown country
+// (or one with no cities in the data) and rejects if the request fails; failures aren't
+// cached, so the next call retries.
+export function loadCityOptions(countryValue: string): Promise<string[]> {
   if (!countryValue) return Promise.resolve([]);
   const country = Country.getAllCountries().find(
     (item) => item.name.toLowerCase() === countryValue.toLowerCase(),
@@ -31,16 +37,17 @@ export function fetchCityOptions(countryValue: string): Promise<string[]> {
 
   let request = cityRequests.get(country.isoCode);
   if (!request) {
-    request = fetch(`/api/geo/cities/${country.isoCode}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`City list request failed (${res.status})`);
-        return res.json() as Promise<string[]>;
-      })
-      .catch(() => {
-        cityRequests.delete(country.isoCode);
-        return [];
-      });
+    request = fetch(`/api/geo/cities/${country.isoCode}?v=${CITY_LIST_VERSION}`).then((res) => {
+      if (!res.ok) throw new Error(`City list request failed (${res.status})`);
+      return res.json() as Promise<string[]>;
+    });
+    request.catch(() => cityRequests.delete(country.isoCode));
     cityRequests.set(country.isoCode, request);
   }
   return request;
+}
+
+// Same as loadCityOptions, but a failed request resolves [] instead of rejecting.
+export function fetchCityOptions(countryValue: string): Promise<string[]> {
+  return loadCityOptions(countryValue).catch(() => []);
 }
