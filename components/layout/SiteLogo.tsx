@@ -21,7 +21,7 @@ export default function SiteLogo({ iconClassName = "h-6 w-6", className = "", hr
 
   if (href) {
     return (
-      <Link className={combinedClassName} href={href}>
+      <Link prefetch={false} className={combinedClassName} href={href}>
         {content}
       </Link>
     );

@@ -34,6 +34,8 @@ export function useModalA11y<T extends HTMLElement>(open: boolean, onClose: () =
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
+        // Already handled inside the dialog (e.g. CityCombobox closing its list).
+        if (e.defaultPrevented) return;
         e.preventDefault();
         onCloseRef.current();
         return;
