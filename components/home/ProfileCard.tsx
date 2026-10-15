@@ -15,6 +15,7 @@ import { formatLookingFor } from "@/lib/profileDetails";
 import MessagesIcon from "@/icons/messages.svg";
 import UserRoundIcon from "@/icons/user-round.svg";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import LinkPendingIcon from "@/components/ui/LinkPendingIcon";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -127,7 +128,9 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
                   className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-pink-200 bg-white px-2.5 py-2 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-pink-300 hover:bg-pink-50/80 sm:flex-initial sm:justify-start sm:py-1.5 sm:text-sm"
                   href={`/messages?to=${encodeURIComponent(profile.userId)}`}
                 >
-                  <MessagesIcon className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
+                  <LinkPendingIcon className="h-4 w-4">
+                    <MessagesIcon className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
+                  </LinkPendingIcon>
                   Send message
                 </Link>
               ) : null}
@@ -136,7 +139,9 @@ export default function ProfileCard({ profile, priority = false }: ProfileCardPr
                 className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-pink-200 bg-white px-2.5 py-2 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-pink-300 hover:bg-pink-50/80 sm:flex-initial sm:justify-start sm:py-1.5 sm:text-sm"
                 href={`/profile/${encodeURIComponent(profile.userId)}`}
               >
-                <UserRoundIcon className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
+                <LinkPendingIcon className="h-4 w-4">
+                  <UserRoundIcon className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
+                </LinkPendingIcon>
                 See profile
               </Link>
             </div>
