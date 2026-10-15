@@ -12,9 +12,8 @@ import {
   SearchResponse,
   fetchProfilesByLocation,
 } from "@/lib/search";
-import { guessCountryFromTimezone, reverseGeocode } from "@/lib/location";
 import { useCityOptions } from "@/hooks/useCityOptions";
-import { fetchCityOptions, getCountryOptions } from "@/lib/geoData";
+import { getCountryOptions, getVisitorCountry } from "@/lib/geoData";
 import { fetchMyProfileCached } from "@/lib/onboarding";
 import { ADS_SLOTS } from "@/lib/adsConfig";
 import HomeNavbar from "@/components/home/HomeNavbar";
@@ -82,19 +81,19 @@ export default function HomeClient() {
       isMountedRef.current = false;
     };
   }, []);
-  const { isLoggedIn, signOut } = useAuth();
+  const { isLoggedIn, loading: authLoading, signOut } = useAuth();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [profiles, setProfiles] = useState<SearchProfile[]>(restored?.profiles ?? []);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(restored == null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [nextToken, setNextToken] = useState<string | null>(restored?.nextToken ?? null);
   const [hasRequestedLocation, setHasRequestedLocation] = useState(restored != null);
   const [pendingFetch, setPendingFetch] = useState<
-    { kind: "filters"; filters: FilterState } | { kind: "geolocate" } | null
+    { kind: "filters"; filters: FilterState } | { kind: "defaultLocation" } | null
   >(null);
   const [filters, setFilters] = useState<FilterState>(
     restored?.filters ?? {
@@ -236,11 +235,20 @@ export default function HomeClient() {
   }, []);
 
   /**
-   * Gender and ages for the first automatic search (no filters in the URL).
-   * Signed-in users get their own preferences; any missing age falls back to the default.
+   * Filters for the first automatic search (no filters in the URL). Signed-in users get their
+   * own preferences and their profile's country and city; any missing age falls back to the
+   * default. Country is "" when there's no profile country to use.
    */
-  async function resolveDefaultSearchPrefs(): Promise<Pick<FilterState, "gender" | "minAge" | "maxAge">> {
-    const anonymous = { gender: DEFAULT_ANON_GENDER, minAge: DEFAULT_MIN_AGE, maxAge: DEFAULT_MAX_AGE } as const;
+  async function resolveDefaultSearchPrefs(): Promise<
+    Pick<FilterState, "gender" | "minAge" | "maxAge" | "country" | "city">
+  > {
+    const anonymous = {
+      gender: DEFAULT_ANON_GENDER,
+      minAge: DEFAULT_MIN_AGE,
+      maxAge: DEFAULT_MAX_AGE,
+      country: "",
+      city: "",
+    } as const;
     if (!isLoggedIn) return anonymous;
     try {
       const profile = await fetchMyProfileCached();
@@ -250,65 +258,33 @@ export default function HomeClient() {
           : anonymous.gender;
       const minAge = profile?.seekingAgeMin ?? DEFAULT_MIN_AGE;
       const maxAge = profile?.seekingAgeMax ?? Math.max(DEFAULT_MAX_AGE, minAge);
-      return { gender, minAge, maxAge };
+      const country = profile?.country?.trim().toLowerCase() ?? "";
+      // A city only makes sense with its country.
+      const city = country ? (profile?.city?.trim().toLowerCase() ?? "") : "";
+      return { gender, minAge, maxAge, country, city };
     } catch {
       return anonymous;
     }
   }
 
-  async function requestLocationAndSearch() {
-    setHasRequestedLocation(true);
+  /**
+   * First visit without filters in the URL. Searches the signed-in user's profile country and
+   * city; otherwise the visitor's whole country from their IP (getVisitorCountry), with no city.
+   * If the country is still unknown, opens the filters so the user picks one.
+   */
+  async function searchDefaultLocation() {
     setLoading(true);
     setProfiles([]);
 
     const prefs = await resolveDefaultSearchPrefs();
-
-    if (!navigator.geolocation) {
-      const guessedCountry = guessCountryFromTimezone();
-      if (guessedCountry) {
-        await applyFilters({ ...filters, ...prefs, country: guessedCountry, city: "" });
-      } else {
-        setProfiles([]);
-        setLoading(false);
-      }
+    const country = prefs.country || (await getVisitorCountry());
+    if (!isMountedRef.current) return;
+    if (!country) {
+      setLoading(false);
+      setIsFilterOpen(true);
       return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const geo = await reverseGeocode(position.coords.latitude, position.coords.longitude);
-          if (!geo.country) {
-            throw new Error("Could not detect your country from browser location.");
-          }
-
-          const normalizedCountry = geo.country.toLowerCase();
-          const normalizedCity = geo.city?.toLowerCase();
-          // Only use the city if it's in our list; geocoded names don't always match.
-          const cityOptionsForCountry = await fetchCityOptions(normalizedCountry);
-          const validatedCity =
-            normalizedCity && cityOptionsForCountry.includes(normalizedCity) ? normalizedCity : "";
-          await applyFilters({ ...filters, ...prefs, country: normalizedCountry, city: validatedCity });
-        } catch {
-          setProfiles([]);
-          setLoading(false);
-        }
-      },
-      async () => {
-        try {
-          const guessedCountry = guessCountryFromTimezone();
-          if (!guessedCountry) {
-            throw new Error("Could not determine your location right now.");
-          }
-
-          await applyFilters({ ...filters, ...prefs, country: guessedCountry, city: "" });
-        } catch {
-          setProfiles([]);
-          setLoading(false);
-        }
-      },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 120000 },
-    );
+    await applyFilters({ ...filters, ...prefs, country, city: prefs.country ? prefs.city : "" });
   }
 
   function syncFromLocation() {
@@ -323,7 +299,7 @@ export default function HomeClient() {
       setHasRequestedLocation(true);
       setPendingFetch({ kind: "filters", filters: fromUrl });
     } else if (!hasAutoRequestedRef.current) {
-      setPendingFetch({ kind: "geolocate" });
+      setPendingFetch({ kind: "defaultLocation" });
     }
   }
 
@@ -346,16 +322,19 @@ export default function HomeClient() {
   const handledFetchRef = useRef<typeof pendingFetch>(null);
   useEffect(() => {
     if (!pendingFetch || handledFetchRef.current === pendingFetch) return;
+    // The default search depends on whether the user is signed in (profile country, prefs),
+    // so it waits for the first sign-in check; this effect re-runs when that finishes.
+    if (pendingFetch.kind === "defaultLocation" && authLoading) return;
     handledFetchRef.current = pendingFetch;
     hasAutoRequestedRef.current = true;
     setPendingFetch(null);
-    if (pendingFetch.kind === "geolocate") {
-      requestLocationAndSearch();
+    if (pendingFetch.kind === "defaultLocation") {
+      searchDefaultLocation();
     } else {
       runSearch(pendingFetch.filters);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingFetch]);
+  }, [pendingFetch, authLoading]);
 
   // Latest results, read when leaving the page (see SavedResults).
   const latestResultsRef = useRef({ lastSeenSearch, filters, profiles, nextToken, loading });
@@ -420,12 +399,7 @@ export default function HomeClient() {
               age, and gender — free to join, free to search.
             </p>
             <EmailVerificationBanner />
-            <FilterBar
-              filters={filters}
-              hasRequestedLocation={hasRequestedLocation}
-              onOpenFilters={() => setIsFilterOpen(true)}
-              onAllowLocation={requestLocationAndSearch}
-            />
+            <FilterBar filters={filters} onOpenFilters={() => setIsFilterOpen(true)} />
 
             {loading ? (
               <section className="mt-6 grid w-full grid-cols-1 gap-4" aria-busy="true" role="status">

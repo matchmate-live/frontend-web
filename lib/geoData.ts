@@ -47,7 +47,34 @@ export function loadCityOptions(countryValue: string): Promise<string[]> {
   return request;
 }
 
-// Same as loadCityOptions, but a failed request resolves [] instead of rejecting.
-export function fetchCityOptions(countryValue: string): Promise<string[]> {
-  return loadCityOptions(countryValue).catch(() => []);
+// The visitor's ISO country code, from /api/geo/me. Asked once per browser and kept in
+// localStorage; a failed or unknown lookup isn't saved, so the next visit asks again.
+const VISITOR_COUNTRY_STORAGE_KEY = "matchmate.visitorCountry";
+
+// The visitor's country as a filter value (e.g. "pakistan"), or null if it's unknown.
+export async function getVisitorCountry(): Promise<string | null> {
+  let isoCode: string | null = null;
+  try {
+    isoCode = window.localStorage.getItem(VISITOR_COUNTRY_STORAGE_KEY);
+  } catch {
+    // storage blocked; ask the server instead
+  }
+
+  if (!isoCode) {
+    try {
+      const res = await fetch("/api/geo/me", { cache: "no-store" });
+      if (!res.ok) return null;
+      isoCode = ((await res.json()) as { country?: string | null }).country ?? null;
+    } catch {
+      return null;
+    }
+    if (!isoCode) return null;
+    try {
+      window.localStorage.setItem(VISITOR_COUNTRY_STORAGE_KEY, isoCode);
+    } catch {
+      // storage blocked; we'll ask again next visit
+    }
+  }
+
+  return getCountryOptions().find((c) => c.isoCode === isoCode)?.value ?? null;
 }
